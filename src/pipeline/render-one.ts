@@ -9,13 +9,12 @@ import { renderPageCanvas } from '../renderer/canvas'
 import { renderPageSvg } from '../renderer/svg'
 import { renderPageHtml } from '../renderer/html'
 
-async function renderBoxes(
-  boxes: LayoutBox[],
-  size: { width: number; height: number },
+export function validateRenderOptions(
   options: RenderOptions,
-): Promise<RenderOutput> {
+): { backend: NonNullable<RenderOptions['renderer']>; format: RenderOutput['format'] } {
   const backend = options.renderer ?? 'canvas'
   const format = options.format ?? (backend === 'canvas' ? 'png' : backend)
+
   if (backend === 'svg' && format !== 'svg') {
     throw new Error(`Cannot use renderer 'svg' with format '${format}'`)
   }
@@ -25,6 +24,16 @@ async function renderBoxes(
   if (backend === 'canvas' && (format === 'svg' || format === 'html')) {
     throw new Error(`Cannot use renderer 'canvas' with vector format '${format}'`)
   }
+
+  return { backend, format }
+}
+
+async function renderBoxes(
+  boxes: LayoutBox[],
+  size: { width: number; height: number },
+  options: RenderOptions,
+): Promise<RenderOutput> {
+  const { backend } = validateRenderOptions(options)
   if (backend === 'svg') return renderPageSvg(boxes, size)
   if (backend === 'html') return renderPageHtml(boxes, size)
   return renderPageCanvas(boxes, size, options)
