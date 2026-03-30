@@ -13,11 +13,15 @@ async function renderBoxes(
   options: RenderOptions,
 ): Promise<RenderOutput> {
   const backend = options.renderer ?? 'canvas'
+  const format = options.format ?? (backend === 'canvas' ? 'png' : backend)
   if (
     (backend === 'svg' || backend === 'html') &&
     (options.format === 'png' || options.format === 'jpeg')
   ) {
     throw new Error(`Cannot use renderer '${backend}' with raster format '${options.format}'`)
+  }
+  if (backend === 'canvas' && (format === 'svg' || format === 'html')) {
+    throw new Error(`Cannot use renderer 'canvas' with vector format '${format}'`)
   }
   if (backend === 'svg') return renderPageSvg(boxes, size)
   if (backend === 'html') return renderPageHtml(boxes, size)
