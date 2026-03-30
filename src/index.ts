@@ -7,7 +7,7 @@ export { computeLayoutBoxes, initLayoutEngine } from './layout/engine'
 export { registerFont } from './setup'
 export { defaultTokens, makeTokens } from './templates/tokens/default'
 // export { paginateContent } from './template/paginator'   // 解注释于 Task 15
-// export { selectTemplates } from './template/selector'    // 解注释于 Task 16
+export { selectTemplates } from './template/selector'
 export type {
   ContentBlock,
   Span,
