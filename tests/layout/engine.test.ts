@@ -1,5 +1,6 @@
 import { test, expect, describe, beforeAll } from 'bun:test'
 import { computeLayoutBoxes, initLayoutEngine } from '../../src/layout/engine'
+import { preloadImageForCanvas, preloadImageForSvg } from '../../src/layout/preload-images'
 import type { LayoutSpec, LayoutBox } from '../../src/types'
 
 beforeAll(async () => {
@@ -75,7 +76,7 @@ describe('computeLayoutBoxes', () => {
       height: 600,
       padding: 40,
       children: [
-        { type: 'rect', width: 'fill', height: 100, fill: { type: 'color', value: '#red' } },
+        { type: 'rect', width: 'fill', height: 100, fill: { type: 'color', value: '#ff0000' } },
       ],
     }
     const boxes = await computeLayoutBoxes(spec, { width: 400, height: 600 })
@@ -84,5 +85,77 @@ describe('computeLayoutBoxes', () => {
     expect(rectBox!.x).toBe(40)
     expect(rectBox!.y).toBe(40)
     expect(rectBox!.width).toBe(320)
+  })
+
+  test('text node respects maxLines and reports capped height', async () => {
+    const spec: LayoutSpec = {
+      type: 'container',
+      direction: 'column',
+      width: 180,
+      height: 600,
+      children: [
+        {
+          type: 'text',
+          spans: [{ text: 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda' }],
+          font: 'bold 32px sans-serif',
+          lineHeight: 40,
+          color: '#000000',
+          maxLines: 2,
+        },
+      ],
+    }
+
+    const boxes = await computeLayoutBoxes(spec, { width: 180, height: 600 })
+    const textBox = boxes.find(b => b.kind === 'text')
+
+    expect(textBox).toBeDefined()
+    expect(textBox!.lines).toHaveLength(2)
+    expect(textBox!.height).toBe(80)
+  })
+})
+
+describe('preloadImageForCanvas', () => {
+  test('loads png data URLs without treating them as file paths', async () => {
+    const dataUrl =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XGJ0AAAAASUVORK5CYII='
+
+    const image = (await preloadImageForCanvas(dataUrl)) as {
+      width: number
+      height: number
+    }
+
+    expect(image.width).toBe(1)
+    expect(image.height).toBe(1)
+  })
+
+  test('throws a clear error when remote fetch returns non-2xx', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () =>
+      new Response('missing', { status: 404, statusText: 'Not Found' })) as unknown as typeof fetch
+
+    try {
+      await expect(preloadImageForCanvas('https://example.com/missing.png')).rejects.toThrow(
+        'Failed to fetch image: https://example.com/missing.png (404 Not Found)',
+      )
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+})
+
+describe('preloadImageForSvg', () => {
+  test('uses the correct svg mime type for local files', async () => {
+    const tempPath = `/tmp/notecard-preload-${Date.now()}.svg`
+    await Bun.write(
+      tempPath,
+      '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"></svg>',
+    )
+
+    try {
+      const dataUrl = await preloadImageForSvg(tempPath)
+      expect(dataUrl.startsWith('data:image/svg+xml;base64,')).toBe(true)
+    } finally {
+      await Bun.file(tempPath).delete()
+    }
   })
 })

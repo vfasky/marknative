@@ -155,19 +155,26 @@ function walkTree(
     case 'text': {
       const plainText = spansToPlainText(spec.spans)
       const lines: TextLine[] = []
+      let textHeight = computed.height
 
       if (plainText.trim()) {
         const prepared = prepareWithSegments(plainText, spec.font)
         const result = layoutWithLines(prepared, computed.width, spec.lineHeight)
+        const renderedLines =
+          spec.maxLines != null ? result.lines.slice(0, spec.maxLines) : result.lines
         let lineY = 0
 
-        for (const line of result.lines) {
+        for (const line of renderedLines) {
           lines.push({
             y: lineY,
             height: spec.lineHeight,
             spans: [{ text: line.text, font: spec.font, color: spec.color, x: 0 }],
           })
           lineY += spec.lineHeight
+        }
+
+        if (spec.maxLines != null) {
+          textHeight = renderedLines.length * spec.lineHeight
         }
       }
 
@@ -177,7 +184,7 @@ function walkTree(
         x: absX,
         y: absY,
         width: computed.width,
-        height: computed.height,
+        height: textHeight,
         lines,
         textAlign: spec.align,
       })
