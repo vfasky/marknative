@@ -1,4 +1,5 @@
 import { test, expect, describe, beforeAll } from 'bun:test'
+import { renderPageCanvas } from '../../src/renderer/canvas'
 import { computeLayoutBoxes, initLayoutEngine } from '../../src/layout/engine'
 import { preloadImageForCanvas, preloadImageForSvg } from '../../src/layout/preload-images'
 import type { LayoutSpec, LayoutBox } from '../../src/types'
@@ -196,5 +197,36 @@ describe('preloadImageForSvg', () => {
     } finally {
       await Bun.file(tempPath).delete()
     }
+  })
+})
+
+describe('renderPageCanvas', () => {
+  test('continues rendering when one image preload fails', async () => {
+    const boxes: LayoutBox[] = [
+      {
+        id: 'bad-image',
+        kind: 'image',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        src: 'https://example.com/missing.png',
+      },
+      {
+        id: 'rect',
+        kind: 'rect',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        fill: { type: 'color', value: '#ff0000' },
+      },
+    ]
+
+    const output = await renderPageCanvas(boxes, { width: 100, height: 100 })
+
+    expect(output.format).toBe('png')
+    expect(Buffer.isBuffer(output.data)).toBe(true)
+    expect((output.data as Buffer).byteLength).toBeGreaterThan(0)
   })
 })

@@ -26,9 +26,13 @@ async function preloadImages(boxes: LayoutBox[]): Promise<void> {
       const promise = cache.get(box.src) ?? preloadImageForCanvas(box.src)
       if (!cache.has(box.src)) cache.set(box.src, promise)
       tasks.push(
-        promise.then(image => {
-          box.loadedImage = image
-        }),
+        promise
+          .then(image => {
+            box.loadedImage = image
+          })
+          .catch(() => {
+            box.loadedImage = null
+          }),
       )
     }
 
