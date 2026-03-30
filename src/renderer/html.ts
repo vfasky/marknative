@@ -26,6 +26,11 @@ function shadowToCss(x: number, y: number, blur: number, color: string): string 
   return `box-shadow:${x}px ${y}px ${blur}px ${color};`
 }
 
+function imageSrcFromBox(box: LayoutBox): string {
+  if (typeof box.loadedImage === 'string') return box.loadedImage
+  return box.src ?? ''
+}
+
 function baseStyle(box: LayoutBox, x: number, y: number): string {
   return `position:absolute;left:${x}px;top:${y}px;width:${box.width}px;height:${box.height}px;overflow:hidden;`
 }
@@ -52,7 +57,7 @@ function boxToHtml(box: LayoutBox, parentX = 0, parentY = 0): string {
           const align = box.textAlign ? `text-align:${box.textAlign};` : ''
           const spansHtml = line.spans
             .map(span => {
-              return `<span style="font:${escapeHtml(span.font)};color:${escapeHtml(span.color)};">${escapeHtml(span.text)}</span>`
+              return `<span style="position:absolute;left:${span.x}px;font:${escapeHtml(span.font)};color:${escapeHtml(span.color)};">${escapeHtml(span.text)}</span>`
             })
             .join('')
 
@@ -64,7 +69,7 @@ function boxToHtml(box: LayoutBox, parentX = 0, parentY = 0): string {
     }
 
     case 'image': {
-      const src = (box.loadedImage as string | undefined) ?? box.src ?? ''
+      const src = imageSrcFromBox(box)
       const radius = box.borderRadius ? `border-radius:${box.borderRadius}px;` : ''
       const fit = box.fit ?? 'cover'
       return `<div style="${base}${radius}"><img src="${escapeHtml(src)}" style="width:100%;height:100%;object-fit:${fit};" /></div>`

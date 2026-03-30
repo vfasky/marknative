@@ -31,6 +31,25 @@ describe('renderPageHtml', () => {
     expect(result.data).toContain('top:20px')
   })
 
+  test('image box falls back to src when loadedImage is an object', async () => {
+    const boxes: LayoutBox[] = [
+      {
+        id: 'image-1',
+        kind: 'image',
+        x: 0,
+        y: 0,
+        width: 64,
+        height: 64,
+        src: 'https://example.com/fallback.png',
+        loadedImage: { width: 64, height: 64 },
+      },
+    ]
+
+    const result = await renderPageHtml(boxes, { width: 400, height: 600 })
+
+    expect(result.data).toContain('src="https://example.com/fallback.png"')
+  })
+
   test('text box -> div with span elements', async () => {
     const boxes: LayoutBox[] = [
       {
@@ -54,5 +73,33 @@ describe('renderPageHtml', () => {
 
     expect(result.data).toContain('Hello')
     expect(result.data).toContain('<span')
+  })
+
+  test('text spans preserve horizontal offsets in output styles', async () => {
+    const boxes: LayoutBox[] = [
+      {
+        id: '3',
+        kind: 'text',
+        x: 0,
+        y: 0,
+        width: 300,
+        height: 60,
+        lines: [
+          {
+            y: 0,
+            height: 56,
+            spans: [
+              { text: 'A', font: 'bold 40px sans-serif', color: '#000', x: 12 },
+              { text: 'B', font: 'bold 40px sans-serif', color: '#000', x: 48 },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const result = await renderPageHtml(boxes, { width: 400, height: 600 })
+
+    expect(result.data).toContain('left:12px')
+    expect(result.data).toContain('left:48px')
   })
 })
