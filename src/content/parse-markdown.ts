@@ -1,21 +1,15 @@
 import { marked } from 'marked'
 import type { ContentBlock, Span } from '../types'
 
-type InlineToken = {
+type MarkdownToken = {
   type: string
   text?: string
   href?: string
-  tokens?: InlineToken[]
-}
-
-type BlockToken = {
-  type: string
-  text?: string
   depth?: number
   lang?: string
   ordered?: boolean
-  items?: Array<{ text?: string }>
-  tokens?: InlineToken[]
+  items?: Array<{ text?: string; tokens?: MarkdownToken[] }>
+  tokens?: MarkdownToken[]
 }
 
 function pushText(spanList: Span[], text?: string, style?: Omit<Span, 'text'>) {
@@ -24,7 +18,7 @@ function pushText(spanList: Span[], text?: string, style?: Omit<Span, 'text'>) {
 }
 
 function inlineTokensToSpans(
-  tokens: InlineToken[] | undefined,
+  tokens: MarkdownToken[] | undefined,
   inheritedStyle: Omit<Span, 'text'> = {},
 ): Span[] {
   if (!tokens || tokens.length === 0) return []
@@ -78,21 +72,45 @@ function spansToPlainText(spans: Span[]) {
   return spans.map(span => span.text).join('').trim()
 }
 
-function extractListItemText(item: { text?: string; tokens?: InlineToken[] }) {
+function extractListItemText(item: { text?: string; tokens?: MarkdownToken[] }) {
   const spans = inlineTokensToSpans(item.tokens)
   if (spans.length > 0) return spansToPlainText(spans)
   return (item.text ?? '').trim()
 }
 
-function blockquoteTokensToText(tokens: InlineToken[] | undefined) {
+function tokenToPlainText(token: MarkdownToken): string {
+  switch (token.type) {
+    case 'paragraph': {
+      const text = spansToPlainText(inlineTokensToSpans(token.tokens))
+      return text || (token.text ?? '').trim()
+    }
+    case 'heading': {
+      const text = spansToPlainText(inlineTokensToSpans(token.tokens))
+      return text || (token.text ?? '').trim()
+    }
+    case 'list':
+      return (token.items ?? [])
+        .map(item => extractListItemText(item))
+        .filter(Boolean)
+        .join('\n')
+    case 'blockquote':
+      return blockquoteTokensToText(token.tokens)
+    case 'space':
+      return ''
+    default: {
+      const text = spansToPlainText(inlineTokensToSpans(token.tokens))
+      return text || (token.text ?? '').trim()
+    }
+  }
+}
+
+function blockquoteTokensToText(tokens: MarkdownToken[] | undefined) {
   if (!tokens || tokens.length === 0) return ''
 
   const parts: string[] = []
 
   for (const token of tokens) {
-    if (token.type !== 'paragraph') continue
-
-    const text = spansToPlainText(inlineTokensToSpans(token.tokens))
+    const text = tokenToPlainText(token)
     if (text) parts.push(text)
   }
 
@@ -100,7 +118,7 @@ function blockquoteTokensToText(tokens: InlineToken[] | undefined) {
 }
 
 export function parseMarkdown(markdown: string): ContentBlock[] {
-  const tokens = marked.lexer(markdown) as BlockToken[]
+  const tokens = marked.lexer(markdown) as MarkdownToken[]
   const blocks: ContentBlock[] = []
 
   for (const token of tokens) {

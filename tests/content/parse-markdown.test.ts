@@ -82,6 +82,16 @@ describe('parseMarkdown', () => {
     ])
   })
 
+  test('blockquote with list item → preserves item text', () => {
+    expect(parseMarkdown('> - item')).toEqual([{ type: 'quoteCard', text: 'item' }])
+  })
+
+  test('blockquote with heading → preserves heading text', () => {
+    expect(parseMarkdown('> # heading')).toEqual([
+      { type: 'quoteCard', text: 'heading' },
+    ])
+  })
+
   test('code block → codeBlock', () => {
     expect(parseMarkdown('```js\nconsole.log(1)\n```')).toEqual([
       { type: 'codeBlock', code: 'console.log(1)', language: 'js' },
