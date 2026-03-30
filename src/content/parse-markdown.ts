@@ -84,6 +84,21 @@ function extractListItemText(item: { text?: string; tokens?: InlineToken[] }) {
   return (item.text ?? '').trim()
 }
 
+function blockquoteTokensToText(tokens: InlineToken[] | undefined) {
+  if (!tokens || tokens.length === 0) return ''
+
+  const parts: string[] = []
+
+  for (const token of tokens) {
+    if (token.type !== 'paragraph') continue
+
+    const text = spansToPlainText(inlineTokensToSpans(token.tokens))
+    if (text) parts.push(text)
+  }
+
+  return parts.join('\n').trim()
+}
+
 export function parseMarkdown(markdown: string): ContentBlock[] {
   const tokens = marked.lexer(markdown) as BlockToken[]
   const blocks: ContentBlock[] = []
@@ -137,7 +152,7 @@ export function parseMarkdown(markdown: string): ContentBlock[] {
       case 'blockquote': {
         blocks.push({
           type: 'quoteCard',
-          text: spansToPlainText(inlineTokensToSpans(token.tokens)),
+          text: blockquoteTokensToText(token.tokens),
         })
         break
       }

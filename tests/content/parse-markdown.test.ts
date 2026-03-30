@@ -76,6 +76,12 @@ describe('parseMarkdown', () => {
     ])
   })
 
+  test('blockquote with multiple paragraphs → preserves boundary', () => {
+    expect(parseMarkdown('> one\n>\n> two')).toEqual([
+      { type: 'quoteCard', text: 'one\ntwo' },
+    ])
+  })
+
   test('code block → codeBlock', () => {
     expect(parseMarkdown('```js\nconsole.log(1)\n```')).toEqual([
       { type: 'codeBlock', code: 'console.log(1)', language: 'js' },
