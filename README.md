@@ -9,7 +9,7 @@
 - **声明式** — 用纯 JSON 描述卡片，无需 DOM
 - **服务端** — 基于 `@napi-rs/canvas` + `OffscreenCanvas`，Bun/Node 均可
 - **CJK 友好** — pretext 提供逐字符宽度测量，精准换行
-- **7 种模板** — basic / quote / list / step / diary / gradient-text / cover
+- **8 种模板** — basic / quote / list / step / diary / gradient-text / cover / markdown
 - **可扩展** — 注册自定义元素渲染器（插件系统）
 - **图片支持** — 背景图、元素填充、边框圆角、滤镜、混合模式
 
@@ -67,10 +67,11 @@ require('node:fs').writeFileSync('out.png', png)
 | `diaryCard` | 日期/星期/天气/心情，内容 + 标签 |
 | `gradientTextCard` | 渐变背景 + 居中大文字，10 种预设 |
 | `coverCard` | 背景图 + 渐变叠加层，标题描边 + 阴影 |
+| `markdownCard` | Markdown 自动排版与分页渲染 |
 
 ### gradientTextCard 渐变预设
 
-`sakura` `sunset` `ocean` `mint` `rose` `lemon` `matcha` `sky` `coral` `peach`
+`sakura` `sunset` `ocean` `aurora` `mint` `night` `rose` `lemon` `matcha` `lavender`
 
 ## 声明式 Schema
 
