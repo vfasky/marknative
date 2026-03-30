@@ -55,9 +55,14 @@ function boxToHtml(box: LayoutBox, parentX = 0, parentY = 0): string {
       const linesHtml = box.lines
         .map(line => {
           const align = box.textAlign ? `text-align:${box.textAlign};` : ''
+          const useAbsoluteOffsets = !box.textAlign || box.textAlign === 'left'
           const spansHtml = line.spans
             .map(span => {
-              return `<span style="position:absolute;left:${span.x}px;font:${escapeHtml(span.font)};color:${escapeHtml(span.color)};">${escapeHtml(span.text)}</span>`
+              const spanStyle = useAbsoluteOffsets
+                ? `position:absolute;left:${span.x}px;`
+                : ''
+
+              return `<span style="${spanStyle}font:${escapeHtml(span.font)};color:${escapeHtml(span.color)};">${escapeHtml(span.text)}</span>`
             })
             .join('')
 

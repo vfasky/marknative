@@ -102,4 +102,40 @@ describe('renderPageHtml', () => {
     expect(result.data).toContain('left:12px')
     expect(result.data).toContain('left:48px')
   })
+
+  test('center and right aligned text do not emit fixed span left offsets', async () => {
+    const boxes: LayoutBox[] = [
+      {
+        id: '4',
+        kind: 'text',
+        x: 0,
+        y: 0,
+        width: 300,
+        height: 120,
+        textAlign: 'center',
+        lines: [
+          {
+            y: 0,
+            height: 56,
+            spans: [{ text: 'Center', font: 'bold 40px sans-serif', color: '#000', x: 12 }],
+          },
+          {
+            y: 60,
+            height: 56,
+            spans: [{ text: 'Right', font: 'bold 40px sans-serif', color: '#000', x: 48 }],
+          },
+        ],
+      },
+    ]
+
+    const result = await renderPageHtml(boxes, { width: 400, height: 600 })
+
+    expect(result.data).toContain('text-align:center')
+    expect(result.data).toContain('Center')
+    expect(result.data).toContain('Right')
+    expect(result.data).not.toContain('left:12px')
+    expect(result.data).not.toContain('left:48px')
+    expect(result.data).not.toContain('position:absolute;left:12px')
+    expect(result.data).not.toContain('position:absolute;left:48px')
+  })
 })
