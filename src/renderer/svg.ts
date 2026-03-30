@@ -40,8 +40,10 @@ function shadowToStyle(x: number, y: number, blur: number, color: string): strin
   return `filter: drop-shadow(${x}px ${y}px ${blur}px ${color});`
 }
 
-function boxToSvg(box: LayoutBox, defs: string[]): string {
-  const { x, y, width: w, height: h } = box
+function boxToSvg(box: LayoutBox, defs: string[], parentX = 0, parentY = 0): string {
+  const x = box.x - parentX
+  const y = box.y - parentY
+  const { width: w, height: h } = box
 
   switch (box.kind) {
     case 'rect': {
@@ -102,7 +104,7 @@ function boxToSvg(box: LayoutBox, defs: string[]): string {
       const children = (box.children ?? [])
         .slice()
         .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
-        .map(child => boxToSvg(child, defs))
+        .map(child => boxToSvg(child, defs, box.x, box.y))
         .join('\n')
 
       return `<g transform="translate(${x},${y})">${children}</g>`
