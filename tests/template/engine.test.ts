@@ -26,6 +26,8 @@ const blocks: ContentBlock[] = [
   { type: 'paragraph', spans: [{ text: '每天进步一点点' }] },
 ]
 
+const mockRoot = mockTemplate.root as Extract<LayoutSpecNode, { type: 'container' }>
+
 describe('applyTemplate', () => {
   test('produces LayoutSpec with no SlotNode', () => {
     const spec = applyTemplate(blocks, mockTemplate)
@@ -60,12 +62,89 @@ describe('applyTemplate', () => {
       ...mockTemplate,
       rules: [
         ctx => {
-          // If title is short, set a flag via mutate (no-op here, just test it runs)
           ctx.mutate('root.children.0.color', '#ff0000')
         },
       ],
     }
-    // Should not throw
-    expect(() => applyTemplate(blocks, template)).not.toThrow()
+
+    const spec = applyTemplate(blocks, template)
+    const container = spec as Extract<LayoutSpecNode, { type: 'container' }>
+    const titleNode = container.children[0]
+
+    expect(titleNode?.type).toBe('text')
+    if (titleNode?.type === 'text') {
+      expect(titleNode.color).toBe('#ff0000')
+    }
+  })
+
+  test('subtitle slot falls back to second heading when hero subtitle is missing', () => {
+    const template: Template = {
+      ...mockTemplate,
+      root: {
+        ...mockRoot,
+        children: [{ type: 'slot', name: 'subtitle' }],
+      },
+    }
+    const subtitleBlocks: ContentBlock[] = [
+      { type: 'heroTitle', title: '封面主标题' },
+      { type: 'heading', level: 2, text: '备用副标题' },
+    ]
+
+    const spec = applyTemplate(subtitleBlocks, template)
+    const container = spec as Extract<LayoutSpecNode, { type: 'container' }>
+    const subtitleNode = container.children[0]
+
+    expect(subtitleNode?.type).toBe('text')
+    if (subtitleNode?.type === 'text') {
+      expect(subtitleNode.spans[0]?.text).toBe('备用副标题')
+      expect(subtitleNode.color).toBe(defaultTokens.colors.subtext)
+    }
+  })
+
+  test('metrics slot maps metric blocks into text nodes', () => {
+    const template: Template = {
+      ...mockTemplate,
+      root: {
+        ...mockRoot,
+        children: [{ type: 'slot', name: 'metrics' }],
+      },
+    }
+    const metricBlocks: ContentBlock[] = [
+      { type: 'metric', label: '阅读量', value: '1024' },
+      { type: 'metric', label: '点赞', value: '256' },
+    ]
+
+    const spec = applyTemplate(metricBlocks, template)
+    const container = spec as Extract<LayoutSpecNode, { type: 'container' }>
+
+    expect(container.children).toHaveLength(2)
+    expect(container.children[0]?.type).toBe('text')
+    if (container.children[0]?.type === 'text') {
+      expect(container.children[0].spans[0]?.text).toBe('阅读量: 1024')
+    }
+  })
+
+  test('unknown slot falls back to conservative text mapping', () => {
+    const template: Template = {
+      ...mockTemplate,
+      root: {
+        ...mockRoot,
+        children: [{ type: 'slot', name: 'custom' }],
+      },
+    }
+    const fallbackBlocks: ContentBlock[] = [
+      { type: 'paragraph', spans: [{ text: '保留正文' }] },
+      { type: 'quoteCard', text: '保留引用' },
+    ]
+
+    const spec = applyTemplate(fallbackBlocks, template)
+    const container = spec as Extract<LayoutSpecNode, { type: 'container' }>
+
+    expect(container.children).toHaveLength(2)
+    expect(container.children[0]?.type).toBe('text')
+    expect(container.children[1]?.type).toBe('text')
+    if (container.children[0]?.type === 'text') {
+      expect(container.children[0].spans[0]?.text).toBe('保留正文')
+    }
   })
 })

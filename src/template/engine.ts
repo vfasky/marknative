@@ -8,6 +8,93 @@ import type {
   RuleContext,
 } from '../types'
 
+function makeTextNode(
+  text: string,
+  tokens: Template['tokens'],
+  color = tokens.colors.text,
+  font = tokens.typography.body.font,
+  lineHeight = tokens.typography.body.lineHeight,
+): LayoutSpecNode {
+  return {
+    type: 'text',
+    spans: [{ text }],
+    font,
+    lineHeight,
+    color,
+  }
+}
+
+function fallbackNodesForBlock(
+  block: ContentBlock,
+  tokens: Template['tokens'],
+): LayoutSpecNode[] {
+  switch (block.type) {
+    case 'heroTitle':
+      return [
+        makeTextNode(
+          block.title,
+          tokens,
+          tokens.colors.text,
+          tokens.typography.h1.font,
+          tokens.typography.h1.lineHeight,
+        ),
+      ]
+    case 'heading':
+      return [
+        makeTextNode(
+          block.text,
+          tokens,
+          tokens.colors.text,
+          block.level === 1 ? tokens.typography.h1.font : tokens.typography.h2.font,
+          block.level === 1
+            ? tokens.typography.h1.lineHeight
+            : tokens.typography.h2.lineHeight,
+        ),
+      ]
+    case 'paragraph':
+      return [
+        {
+          type: 'text',
+          spans: block.spans,
+          font: tokens.typography.body.font,
+          lineHeight: tokens.typography.body.lineHeight,
+          color: tokens.colors.text,
+        },
+      ]
+    case 'bulletList':
+    case 'steps':
+      return block.items.map(item => makeTextNode(`• ${item}`, tokens))
+    case 'orderedList':
+      return block.items.map((item, index) => makeTextNode(`${index + 1}. ${item}`, tokens))
+    case 'quoteCard':
+      return [makeTextNode(block.text, tokens)]
+    case 'metric':
+      return [makeTextNode(`${block.label}: ${block.value}`, tokens)]
+    case 'tags':
+      return [
+        {
+          type: 'text',
+          spans: block.items.map(tag => ({ text: `#${tag} ` })),
+          font: tokens.typography.caption.font,
+          lineHeight: tokens.typography.caption.lineHeight,
+          color: tokens.colors.primary,
+        },
+      ]
+    case 'codeBlock':
+      return [
+        makeTextNode(
+          block.code,
+          tokens,
+          tokens.colors.text,
+          tokens.typography.code.font,
+          tokens.typography.code.lineHeight,
+        ),
+      ]
+    default:
+      return []
+  }
+}
+
 export function resolveSlot(
   name: string,
   blocks: ContentBlock[],
@@ -33,12 +120,32 @@ export function resolveSlot(
     }
     case 'subtitle': {
       const hero = blocks.find(block => block.type === 'heroTitle')
-      if (hero?.type !== 'heroTitle' || !hero.subtitle) return []
+      if (hero?.type === 'heroTitle' && hero.subtitle) {
+        return [
+          {
+            type: 'text',
+            spans: [{ text: hero.subtitle }],
+            font: tokens.typography.h2.font,
+            lineHeight: tokens.typography.h2.lineHeight,
+            color: tokens.colors.subtext,
+          },
+        ]
+      }
+
+      const headings = blocks.filter(
+        block => block.type === 'heroTitle' || block.type === 'heading',
+      )
+      const fallback = headings[1]
+      if (!fallback) return []
 
       return [
         {
           type: 'text',
-          spans: [{ text: hero.subtitle }],
+          spans: [
+            {
+              text: fallback.type === 'heroTitle' ? fallback.title : fallback.text,
+            },
+          ],
           font: tokens.typography.h2.font,
           lineHeight: tokens.typography.h2.lineHeight,
           color: tokens.colors.subtext,
@@ -111,8 +218,13 @@ export function resolveSlot(
         },
       ]
     }
+    case 'metrics': {
+      return blocks
+        .filter(block => block.type === 'metric')
+        .flatMap(block => fallbackNodesForBlock(block, tokens))
+    }
     default:
-      return []
+      return blocks.flatMap(block => fallbackNodesForBlock(block, tokens))
   }
 }
 
