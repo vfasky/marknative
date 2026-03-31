@@ -148,6 +148,8 @@ export type RenderOptions = {
   renderer?: 'canvas' | 'svg' | 'html'
   format?: RenderOutput['format']
   quality?: number
+  /** Pixel density multiplier for canvas output. Default 2 for retina-quality PNGs. */
+  scale?: number
 }
 
 export type RenderOutput =

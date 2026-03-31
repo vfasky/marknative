@@ -241,9 +241,11 @@ export async function renderPageCanvas(
 ): Promise<RenderOutput> {
   await preloadImages(boxes)
 
-  const canvas = createCanvas(size.width, size.height)
+  const scale = options.scale ?? 2
+  const canvas = createCanvas(Math.round(size.width * scale), Math.round(size.height * scale))
   const ctx = canvas.getContext('2d')
 
+  ctx.scale(scale, scale)
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, size.width, size.height)
 
