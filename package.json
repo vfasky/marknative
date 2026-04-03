@@ -62,7 +62,6 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.3",
-    "marknative": "^0.1.0",
     "mdast-util-from-markdown": "^2.0.0",
     "mdast-util-gfm": "^3.0.0",
     "micromark": "^4.0.0",
