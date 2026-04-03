@@ -14,6 +14,10 @@ const [page] = await renderMarkdown(markdown, { singlePage: true })
 writeFileSync('output.png', page.data)
 ```
 
+**Rendered output:**
+
+![Single-page rendered output](/examples/single-page.png)
+
 ## When to Use It
 
 | Use case | Recommended mode |

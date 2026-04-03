@@ -30,6 +30,10 @@ Standard Markdown image syntax:
 
 Block images are placed as atomic fragments — they are never split across pages. The image is scaled to fit inside the layout box while preserving its aspect ratio (object-fit: contain).
 
+**Rendered output:**
+
+![Block image rendered output](/examples/image-block.png)
+
 ## Fallback
 
 If an image cannot be loaded (network error, 404, unsupported format), a placeholder box is rendered in its place, showing the image title or alt text.
@@ -38,6 +42,10 @@ If an image cannot be loaded (network error, 404, unsupported format), a placeho
 <!-- This will show a placeholder if unreachable -->
 ![Broken](https://example.com/does-not-exist.png "Placeholder fallback")
 ```
+
+**Placeholder output:**
+
+![Image placeholder fallback](/examples/image-placeholder.png)
 
 ## Inline Images
 

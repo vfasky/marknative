@@ -31,6 +31,10 @@ const svgPages = await renderMarkdown(markdown, { format: 'svg' })
 svgPages[0].data // string
 ```
 
+**Rendered output (PNG):**
+
+![PNG render output](/examples/options-paginated.png)
+
 ## `singlePage`
 
 **Type:** `boolean`  

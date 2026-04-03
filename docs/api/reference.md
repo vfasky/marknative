@@ -36,6 +36,10 @@ for (const page of pages) {
 }
 ```
 
+**Rendered output:**
+
+![API overview rendered output](/examples/api-overview.png)
+
 ---
 
 ## `RenderMarkdownOptions`

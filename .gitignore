@@ -39,3 +39,4 @@ out-*.png
 .worktrees
 tests/smoke/output/
 docs/.vitepress/dist
+docs/public/examples/

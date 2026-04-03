@@ -64,6 +64,10 @@ for (const [i, page] of pages.entries()) {
 
 Each element of `pages` is a [`RenderPage`](/api/reference#renderpage) object with a `format` field and a `data` field.
 
+**Rendered output:**
+
+![Getting started rendered output](/examples/getting-started.png)
+
 ## SVG Output
 
 Pass `format: 'svg'` to get SVG strings instead of PNG buffers:

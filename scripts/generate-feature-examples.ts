@@ -1,0 +1,154 @@
+/**
+ * Generates feature showcase PNG examples for the VitePress docs gallery.
+ * Output: docs/public/examples/features/*.png
+ *
+ * Run: bun scripts/generate-feature-examples.ts
+ */
+
+import { writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+
+import { renderMarkdown } from '../src'
+import { defaultTheme } from '../src/theme/default-theme'
+
+const OUT = resolve(import.meta.dir, '..', 'docs', 'public', 'examples', 'features')
+
+async function save(name: string, data: Buffer): Promise<void> {
+  await writeFile(resolve(OUT, `${name}.png`), data)
+  console.log('wrote', name)
+}
+
+async function png(md: string, opts: Parameters<typeof renderMarkdown>[1] = {}): Promise<Buffer[]> {
+  const pages = await renderMarkdown(md, { format: 'png', ...opts })
+  return pages.filter((p) => p.format === 'png').map((p) => (p.format === 'png' ? p.data : Buffer.alloc(0)))
+}
+
+const LONG_MD = `# Long Document Rendering
+
+marknative automatically paginates content that exceeds a single page height.
+Each page is a fixed-size PNG or SVG image.
+
+## Section 1 — Prose
+
+Regular paragraph text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.
+
+**Bold text** and *italic text* and \`inline code\` all in one paragraph.
+
+## Section 2 — Lists
+
+- First item at the top level
+- Second item with **bold** content
+  - Nested item one level deep
+  - Another nested item
+- Third item at the top level
+
+1. Install dependencies with \`bun install\`
+2. Run the development server
+3. Open your browser and navigate to the local port
+4. Edit any source file — hot reload kicks in automatically
+
+## Section 3 — Code Block
+
+\`\`\`typescript
+import { renderMarkdown } from 'marknative'
+import { writeFileSync } from 'node:fs'
+
+const pages = await renderMarkdown(longMarkdownDocument)
+
+for (const [i, page] of pages.entries()) {
+  writeFileSync(\`page-\${i + 1}.png\`, page.data)
+}
+
+console.log(\`Rendered \${pages.length} page(s)\`)
+\`\`\`
+
+## Section 4 — Table
+
+| Feature | marknative | Browser-based |
+| :--- | :---: | :---: |
+| Server-side rendering | ✓ | ✗ |
+| Deterministic output | ✓ | ✗ |
+| No browser required | ✓ | ✗ |
+| Fast batch rendering | ✓ | slow |
+
+## Section 5 — Blockquote
+
+> Long documents paginate automatically. Each page corresponds to one output image.
+> Fragments that are too tall to fit on a remaining page are moved to the next page.
+
+---
+
+*Page 1 of a multi-page render.*
+`
+
+// ─── Paginated rendering (show page 1 and 2) ────────────────────────────────
+
+const paginatedPages = await png(LONG_MD)
+await save('paginated-p1', paginatedPages[0]!)
+if (paginatedPages[1]) await save('paginated-p2', paginatedPages[1])
+
+// ─── Single-page rendering ───────────────────────────────────────────────────
+
+const [singleBuf] = await png(LONG_MD, { singlePage: true })
+await save('single-page', singleBuf!)
+
+// ─── Custom page width (narrow) ─────────────────────────────────────────────
+
+const narrowTheme = {
+  ...defaultTheme,
+  page: {
+    ...defaultTheme.page,
+    width: 480,
+    height: defaultTheme.page.height,
+  },
+}
+
+const [narrowBuf] = await png(
+  `# Custom Page Width
+
+This page uses a **480px** width instead of the default 794px.
+
+The layout engine adapts — text wraps earlier, code blocks reflow,
+and all block widths are recalculated automatically.
+
+- Line breaking adapts to the narrower column
+- Images scale down to fit the available width
+- Tables reflow within the reduced content area
+`,
+  { painter: (await import('../src/paint/skia-canvas.js')).createSkiaCanvasPainter(narrowTheme) },
+)
+await save('custom-width', narrowBuf!)
+
+// ─── Custom page size (tall / portrait) ─────────────────────────────────────
+
+const tallTheme = {
+  ...defaultTheme,
+  page: {
+    ...defaultTheme.page,
+    width: 600,
+    height: 1200,
+  },
+}
+
+const [tallBuf] = await png(
+  `# Custom Page Height
+
+This page uses a **600×1200px** size — taller than the default A4 proportion.
+
+More content fits on a single page when the page height is increased.
+Pagination still works the same way — the engine simply has more vertical
+space available before creating a new page.
+
+## Benefits
+
+- Fewer pages for the same content
+- Better fit for long-form documents
+- Matches custom card or poster formats
+`,
+  { painter: (await import('../src/paint/skia-canvas.js')).createSkiaCanvasPainter(tallTheme) },
+)
+await save('custom-height', tallBuf!)
+
+console.log('✓ all feature examples generated')
