@@ -21,6 +21,7 @@ async function save(name: string, md: string): Promise<void> {
   console.log('wrote', name)
 }
 
+// Headings — all six levels, showing distinct sizes for H1–H4 and H5–H6
 await save('headings', `# Heading 1
 ## Heading 2
 ### Heading 3
@@ -70,9 +71,9 @@ await save('task-list', `## Task List
 - [x] Build internal document model
 - [x] Implement block-level layout engine
 - [x] Implement inline line-breaking
+- [x] Public theme and page configuration API
 - [ ] Improve paragraph line-breaking quality
 - [ ] Refine CJK line-breaking rules
-- [ ] Expose public theme configuration API
 `)
 
 await save('blockquote', `## Blockquotes

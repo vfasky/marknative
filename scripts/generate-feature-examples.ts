@@ -8,8 +8,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-import { renderMarkdown } from '../src'
-import { defaultTheme } from '../src/theme/default-theme'
+import { mergeTheme, renderMarkdown } from '../src'
 
 const OUT = resolve(import.meta.dir, '..', 'docs', 'public', 'examples', 'features')
 await mkdir(OUT, { recursive: true })
@@ -97,19 +96,15 @@ await save('single-page', singleBuf!)
 
 // ─── Custom page width (narrow) ─────────────────────────────────────────────
 
-const narrowTheme = {
-  ...defaultTheme,
-  page: {
-    ...defaultTheme.page,
-    width: 480,
-    height: defaultTheme.page.height,
-  },
-}
+const narrowTheme = mergeTheme(
+  (await import('../src')).defaultTheme,
+  { page: { width: 480 } },
+)
 
 const [narrowBuf] = await png(
   `# Custom Page Width
 
-This page uses a **480px** width instead of the default 794px.
+This page uses a **480 px** width instead of the default 1080 px.
 
 The layout engine adapts — text wraps earlier, code blocks reflow,
 and all block widths are recalculated automatically.
@@ -118,25 +113,21 @@ and all block widths are recalculated automatically.
 - Images scale down to fit the available width
 - Tables reflow within the reduced content area
 `,
-  { painter: (await import('../src/paint/skia-canvas.js')).createSkiaCanvasPainter(narrowTheme) },
+  { theme: narrowTheme },
 )
 await save('custom-width', narrowBuf!)
 
 // ─── Custom page size (tall / portrait) ─────────────────────────────────────
 
-const tallTheme = {
-  ...defaultTheme,
-  page: {
-    ...defaultTheme.page,
-    width: 600,
-    height: 1200,
-  },
-}
+const tallTheme = mergeTheme(
+  (await import('../src')).defaultTheme,
+  { page: { width: 600, height: 1200 } },
+)
 
 const [tallBuf] = await png(
   `# Custom Page Height
 
-This page uses a **600×1200px** size — taller than the default A4 proportion.
+This page uses a **600 × 1200 px** size — taller than the default portrait ratio.
 
 More content fits on a single page when the page height is increased.
 Pagination still works the same way — the engine simply has more vertical
@@ -148,7 +139,7 @@ space available before creating a new page.
 - Better fit for long-form documents
 - Matches custom card or poster formats
 `,
-  { painter: (await import('../src/paint/skia-canvas.js')).createSkiaCanvasPainter(tallTheme) },
+  { theme: tallTheme },
 )
 await save('custom-height', tallBuf!)
 
