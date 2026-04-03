@@ -5,12 +5,13 @@
  * Run: bun scripts/generate-docs-examples.ts
  */
 
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import { renderMarkdown } from '../src'
 
 const OUT = resolve(import.meta.dir, '..', 'docs', 'public', 'examples')
+await mkdir(OUT, { recursive: true })
 
 async function save(name: string, data: Buffer): Promise<void> {
   const path = resolve(OUT, name)

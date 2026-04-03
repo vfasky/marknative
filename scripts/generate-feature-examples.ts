@@ -5,13 +5,14 @@
  * Run: bun scripts/generate-feature-examples.ts
  */
 
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import { renderMarkdown } from '../src'
 import { defaultTheme } from '../src/theme/default-theme'
 
 const OUT = resolve(import.meta.dir, '..', 'docs', 'public', 'examples', 'features')
+await mkdir(OUT, { recursive: true })
 
 async function save(name: string, data: Buffer): Promise<void> {
   await writeFile(resolve(OUT, `${name}.png`), data)
