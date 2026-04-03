@@ -69,8 +69,9 @@ The intent is simple: given the same markdown, callers should get the same layou
       'list',
       'heading',
       'list',
+      'heading', // ### Behavior — heading marginTop now pushes it to the end of page 1
     ])
-    expect(pageFragmentKinds(pages[1]!)).toEqual(['heading', 'paragraph', 'list', 'paragraph'])
+    expect(pageFragmentKinds(pages[1]!)).toEqual(['paragraph', 'list', 'paragraph'])
 
     await writeSmokePages(outputDir, 'api-doc', pages)
     await expectExactSmokeOutputs(outputDir, ['api-doc-01.png', 'api-doc-02.png'])

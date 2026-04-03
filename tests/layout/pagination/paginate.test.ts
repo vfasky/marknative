@@ -4,7 +4,7 @@ import { parseMarkdown } from '../../../src/parser/parse-markdown'
 import { layoutDocument } from '../../../src/layout/block/layout-document'
 import { paginateFragments } from '../../../src/layout/pagination/paginate'
 import { defaultTheme } from '../../../src/theme/default-theme'
-import type { DefaultTheme } from '../../../src/theme/default-theme'
+import type { Theme } from '../../../src/theme/default-theme'
 import type { LayoutFragment } from '../../../src/layout/types'
 
 class TestMeasureContext {
@@ -42,7 +42,7 @@ afterEach(() => {
   ;(globalThis as typeof globalThis & { OffscreenCanvas?: unknown }).OffscreenCanvas = originalOffscreenCanvas
 })
 
-const compactTheme: DefaultTheme = {
+const compactTheme: Theme = {
   ...defaultTheme,
   page: {
     ...defaultTheme.page,
@@ -263,7 +263,7 @@ ${Array.from({ length: 12 }, (_, index) => `export const step${index + 1} = ${in
   })
 
   test('does not drop a page when the previous page is exactly full', () => {
-    const exactTheme: DefaultTheme = {
+    const exactTheme: Theme = {
       ...compactTheme,
       page: {
         ...compactTheme.page,
@@ -332,7 +332,7 @@ ${Array.from({ length: 20 }, (_, index) => `| row-${index + 1} | value-${index +
   })
 
   test('throws when a single code line cannot fit into an empty page', () => {
-    const tinyCodeTheme: DefaultTheme = {
+    const tinyCodeTheme: Theme = {
       ...compactTheme,
       page: {
         ...compactTheme.page,

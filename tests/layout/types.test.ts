@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { defaultTheme } from '../../src/theme/default-theme'
-import type { DefaultTheme } from '../../src/theme/default-theme'
+import type { Theme } from '../../src/theme/default-theme'
 import type {
   BlockLayoutFragment,
   Fragment,
@@ -12,7 +12,7 @@ import type {
   PageBox,
 } from '../../src/layout/types'
 
-const theme: DefaultTheme = defaultTheme
+const theme: Theme = defaultTheme
 type Assert<T extends true> = T
 type IsEqual<A, B> =
   (<T>() => T extends A ? 1 : 2) extends
