@@ -2,7 +2,8 @@ import { layoutNextLine, prepareWithSegments } from '@chenglou/pretext'
 
 import type { InlineNode } from '../../document/types'
 import type { LineBox, LineRun } from '../types'
-import { defaultTheme } from '../../theme/default-theme'
+import type { Theme } from '../../theme/default-theme'
+import { withFontStyle, withFontWeight } from '../font-utils'
 
 type StyleContext = {
   kind: LineRun['styleKind']
@@ -42,7 +43,7 @@ const EPSILON = 0.001
 export function layoutInlineRuns(
   runs: InlineNode[],
   width: number,
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): LineBox[] {
   const segments = flattenInlineRuns(runs, theme)
   const maxWidth = width > 0 ? width : 1
@@ -178,7 +179,7 @@ export function layoutInlineRuns(
   return lines
 }
 
-function flattenInlineRuns(runs: InlineNode[], theme: typeof defaultTheme): Array<PreparedSegment | BreakSegment> {
+function flattenInlineRuns(runs: InlineNode[], theme: Theme): Array<PreparedSegment | BreakSegment> {
   const baseContext: StyleContext = {
     kind: 'text',
     font: theme.typography.body.font,
@@ -190,7 +191,7 @@ function flattenInlineRuns(runs: InlineNode[], theme: typeof defaultTheme): Arra
 
 function flattenInlineNodes(
   runs: InlineNode[],
-  theme: typeof defaultTheme,
+  theme: Theme,
   context: StyleContext,
 ): Array<PreparedSegment | BreakSegment> {
   const segments: Array<PreparedSegment | BreakSegment> = []
@@ -404,18 +405,3 @@ function finalizeLine(line: MutableLineBox, fallbackLineHeight: number): Mutable
   }
 }
 
-function withFontWeight(font: string, weight: 'bold' | 'normal'): string {
-  if (weight === 'normal') {
-    return font.replace(/^bold\s+/, '')
-  }
-
-  return font.startsWith('bold ') ? font : `bold ${font}`
-}
-
-function withFontStyle(font: string, style: 'italic' | 'normal'): string {
-  if (style === 'normal') {
-    return font.replace(/^italic\s+/, '')
-  }
-
-  return font.startsWith('italic ') ? font : `italic ${font}`
-}

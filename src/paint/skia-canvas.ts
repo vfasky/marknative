@@ -15,20 +15,9 @@ import type {
   PaintThematicBreakFragment,
   Painter,
 } from './types'
-import { defaultTheme } from '../theme/default-theme'
-
-const COLORS = {
-  background: '#ffffff',
-  text: '#111827',
-  link: '#2563eb',
-  mutedText: '#6b7280',
-  border: '#d1d5db',
-  subtleBorder: '#e5e7eb',
-  quoteBorder: '#9ca3af',
-  codeBackground: '#f8fafc',
-  imageBackground: '#f9fafb',
-  imageAccent: '#cbd5e1',
-}
+import type { GradientFill, ThemeColors } from '../theme/default-theme'
+import { defaultTheme, type Theme } from '../theme/default-theme'
+import { withFontStyle, withFontWeight } from '../layout/font-utils'
 
 const PNG_SCALE = 2
 
@@ -42,7 +31,7 @@ type SkiaCanvasModule = {
 
 let skiaCanvasLoader: Promise<SkiaCanvasModule> | null = null
 
-export function createSkiaCanvasPainter(theme = defaultTheme): Painter {
+export function createSkiaCanvasPainter(theme: Theme = defaultTheme): Painter {
   return {
     renderPng(page: PaintPage): Promise<Buffer> {
       return renderWithSkia(page, theme, 'png')
@@ -68,7 +57,7 @@ async function loadSkiaCanvas(): Promise<SkiaCanvasModule> {
 
 async function renderWithSkia(
   page: PaintPage,
-  theme: typeof defaultTheme,
+  theme: Theme,
   format: 'png' | 'svg',
 ): Promise<Buffer> {
   const skiaCanvas = await loadSkiaCanvas()
@@ -147,8 +136,56 @@ function prepareContext(context: CanvasRenderingContext2D): void {
   context.imageSmoothingEnabled = true
 }
 
-function drawPage(context: CanvasRenderingContext2D, page: PaintPage, theme: typeof defaultTheme, images: Map<string, SkiaImage>): void {
-  context.fillStyle = COLORS.background
+/**
+ * Build a fill value for the page background — either a plain color string
+ * or a CanvasGradient when `backgroundGradient` is defined in the theme.
+ *
+ * Linear gradient angle convention: 0° = top→bottom, 90° = left→right.
+ * The gradient line is sized so it fully covers the page rectangle at any angle.
+ */
+function resolveBackgroundFill(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  colors: ThemeColors,
+): string | ReturnType<CanvasRenderingContext2D['createLinearGradient']> {
+  const spec = colors.backgroundGradient
+  if (!spec) return colors.background
+
+  if (spec.type === 'linear') {
+    const angle = spec.angle ?? 0
+    const rad = (angle * Math.PI) / 180
+    const dx = Math.sin(rad)
+    const dy = Math.cos(rad)
+    // Gradient line length to guarantee full rectangle coverage at any angle
+    const length = Math.abs(dx) * width + Math.abs(dy) * height
+    const cx = width / 2
+    const cy = height / 2
+    const gradient = context.createLinearGradient(
+      cx - (dx * length) / 2,
+      cy - (dy * length) / 2,
+      cx + (dx * length) / 2,
+      cy + (dy * length) / 2,
+    )
+    for (const stop of spec.stops) {
+      gradient.addColorStop(stop.offset, stop.color)
+    }
+    return gradient
+  }
+
+  // Radial gradient — centred on the page, radius reaches the farthest corner
+  const cx = width / 2
+  const cy = height / 2
+  const radius = Math.sqrt(cx * cx + cy * cy)
+  const gradient = context.createRadialGradient(cx, cy, 0, cx, cy, radius)
+  for (const stop of spec.stops) {
+    gradient.addColorStop(stop.offset, stop.color)
+  }
+  return gradient
+}
+
+function drawPage(context: CanvasRenderingContext2D, page: PaintPage, theme: Theme, images: Map<string, SkiaImage>): void {
+  context.fillStyle = resolveBackgroundFill(context, page.width, page.height, theme.colors)
   context.fillRect(0, 0, page.width, page.height)
 
   for (const fragment of page.fragments) {
@@ -159,7 +196,7 @@ function drawPage(context: CanvasRenderingContext2D, page: PaintPage, theme: typ
 function drawFragment(
   context: CanvasRenderingContext2D,
   fragment: PaintBlockFragment,
-  theme: typeof defaultTheme,
+  theme: Theme,
   images: Map<string, SkiaImage>,
 ): void {
   if (fragment.kind === 'heading') {
@@ -189,7 +226,7 @@ function drawFragment(
       drawImageFragment(context, fragment, theme, images)
       return
     case 'thematicBreak':
-      drawThematicBreak(context, fragment)
+      drawThematicBreak(context, fragment, theme)
       return
   }
 }
@@ -197,8 +234,8 @@ function drawFragment(
 function drawLines(
   context: CanvasRenderingContext2D,
   lines: PaintLineBox[] | undefined,
-  baseTypography: typeof defaultTheme.typography.body,
-  theme: typeof defaultTheme,
+  baseTypography: Theme['typography']['body'],
+  theme: Theme,
 ): void {
   if (!lines) return
 
@@ -210,8 +247,8 @@ function drawLines(
 function drawLine(
   context: CanvasRenderingContext2D,
   line: PaintLineBox,
-  baseTypography: typeof defaultTheme.typography.body,
-  theme: typeof defaultTheme,
+  baseTypography: Theme['typography']['body'],
+  theme: Theme,
 ): void {
   for (const run of line.runs) {
     drawRun(context, line, run, baseTypography, theme)
@@ -222,11 +259,11 @@ function drawRun(
   context: CanvasRenderingContext2D,
   line: PaintLineBox,
   run: PaintLineRun,
-  baseTypography: typeof defaultTheme.typography.body,
-  theme: typeof defaultTheme,
+  baseTypography: Theme['typography']['body'],
+  theme: Theme,
 ): void {
   const font = fontForRun(run, baseTypography, theme)
-  const fillStyle = colorForRun(run)
+  const fillStyle = colorForRun(run, theme)
   const baseline = line.baseline
 
   context.font = font
@@ -241,9 +278,9 @@ function drawRun(
     const top = baseline - ascent - paddingY
     const height = ascent + descent + paddingY * 2
 
-    context.fillStyle = COLORS.codeBackground
+    context.fillStyle = theme.colors.codeBackground
     context.fillRect(run.x - paddingX, top, metrics.width + paddingX * 2, height)
-    context.fillStyle = COLORS.text
+    context.fillStyle = theme.colors.text
     context.fillText(run.text, run.x, baseline)
     return
   }
@@ -252,7 +289,7 @@ function drawRun(
 
   if (run.styleKind === 'link') {
     const metrics = context.measureText(run.text)
-    context.strokeStyle = COLORS.link
+    context.strokeStyle = theme.colors.link
     context.lineWidth = 1.5
     context.beginPath()
     context.moveTo(run.x, baseline + 2)
@@ -262,7 +299,7 @@ function drawRun(
 
   if (run.styleKind === 'delete') {
     const metrics = context.measureText(run.text)
-    context.strokeStyle = COLORS.mutedText
+    context.strokeStyle = theme.colors.mutedText
     context.lineWidth = 1.5
     context.beginPath()
     const strikeY = baseline - line.height * 0.22
@@ -272,16 +309,16 @@ function drawRun(
   }
 }
 
-function drawCodeFragment(context: CanvasRenderingContext2D, fragment: PaintCodeFragment, theme: typeof defaultTheme): void {
-  context.fillStyle = COLORS.codeBackground
+function drawCodeFragment(context: CanvasRenderingContext2D, fragment: PaintCodeFragment, theme: Theme): void {
+  context.fillStyle = theme.colors.codeBackground
   context.fillRect(fragment.box.x, fragment.box.y, fragment.box.width, fragment.box.height)
-  context.strokeStyle = COLORS.subtleBorder
+  context.strokeStyle = theme.colors.subtleBorder
   context.lineWidth = 1
   context.strokeRect(fragment.box.x, fragment.box.y, fragment.box.width, fragment.box.height)
   drawLines(context, fragment.lines, theme.typography.code, theme)
 }
 
-function drawListFragment(context: CanvasRenderingContext2D, fragment: PaintListFragment, theme: typeof defaultTheme, images: Map<string, SkiaImage>): void {
+function drawListFragment(context: CanvasRenderingContext2D, fragment: PaintListFragment, theme: Theme, images: Map<string, SkiaImage>): void {
   for (const item of fragment.items) {
     drawListMarker(context, item, theme)
     for (const child of item.children) {
@@ -293,14 +330,14 @@ function drawListFragment(context: CanvasRenderingContext2D, fragment: PaintList
 function drawListMarker(
   context: CanvasRenderingContext2D,
   item: PaintListItemFragment,
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): void {
   const firstLine = findFirstLine(item.children)
   const baseline = firstLine?.baseline ?? item.box.y + theme.typography.body.lineHeight * 0.8
   const markerX = item.box.x + 4
 
   context.font = theme.typography.body.font
-  context.fillStyle = COLORS.text
+  context.fillStyle = theme.colors.text
 
   switch (item.marker.kind) {
     case 'bullet':
@@ -310,7 +347,7 @@ function drawListMarker(
       context.fillText(`${item.marker.ordinal}.`, markerX, baseline)
       return
     case 'task':
-      drawTaskCheckbox(context, markerX, baseline, theme.typography.body.lineHeight, item.marker.checked)
+      drawTaskCheckbox(context, markerX, baseline, theme.typography.body.lineHeight, item.marker.checked, theme)
       return
   }
 }
@@ -318,12 +355,12 @@ function drawListMarker(
 function drawBlockquoteFragment(
   context: CanvasRenderingContext2D,
   fragment: Extract<PaintBlockFragment, { kind: 'blockquote' }>,
-  theme: typeof defaultTheme,
+  theme: Theme,
   images: Map<string, SkiaImage>,
 ): void {
-  context.fillStyle = '#f8fafc'
+  context.fillStyle = theme.colors.quoteBackground
   context.fillRect(fragment.box.x, fragment.box.y, fragment.box.width, fragment.box.height)
-  context.fillStyle = COLORS.quoteBorder
+  context.fillStyle = theme.colors.quoteBorder
   context.fillRect(fragment.box.x, fragment.box.y, 4, fragment.box.height)
 
   for (const child of fragment.children) {
@@ -331,16 +368,25 @@ function drawBlockquoteFragment(
   }
 }
 
-function drawTableFragment(context: CanvasRenderingContext2D, fragment: PaintTableFragment, theme: typeof defaultTheme): void {
+function drawTableFragment(context: CanvasRenderingContext2D, fragment: PaintTableFragment, theme: Theme): void {
+  // Header background — use dedicated token, fall back to codeBackground
+  const headerBg = theme.colors.tableHeaderBackground ?? theme.colors.codeBackground
+  context.fillStyle = headerBg
+  context.fillRect(
+    fragment.header.box.x,
+    fragment.header.box.y,
+    fragment.header.box.width,
+    fragment.header.box.height,
+  )
   drawTableRow(context, fragment.header, theme)
   for (const row of fragment.rows) {
     drawTableRow(context, row, theme)
   }
 }
 
-function drawTableRow(context: CanvasRenderingContext2D, row: PaintTableRowFragment, theme: typeof defaultTheme): void {
+function drawTableRow(context: CanvasRenderingContext2D, row: PaintTableRowFragment, theme: Theme): void {
   for (const cell of row.cells) {
-    context.strokeStyle = COLORS.border
+    context.strokeStyle = theme.colors.border
     context.lineWidth = 1
     context.strokeRect(cell.box.x, cell.box.y, cell.box.width, cell.box.height)
     drawLines(context, cell.lines, theme.typography.body, theme)
@@ -350,7 +396,7 @@ function drawTableRow(context: CanvasRenderingContext2D, row: PaintTableRowFragm
 function drawImageFragment(
   context: CanvasRenderingContext2D,
   fragment: PaintImageFragment,
-  theme: typeof defaultTheme,
+  theme: Theme,
   images: Map<string, SkiaImage>,
 ): void {
   const { x, y, width, height } = fragment.box
@@ -366,20 +412,20 @@ function drawImageFragment(
     return
   }
 
-  context.fillStyle = COLORS.imageBackground
+  context.fillStyle = theme.colors.imageBackground
   context.fillRect(x, y, width, height)
-  context.strokeStyle = COLORS.imageAccent
+  context.strokeStyle = theme.colors.imageAccent
   context.lineWidth = 2
   context.strokeRect(x, y, width, height)
 
   context.font = theme.typography.body.font
-  context.fillStyle = COLORS.mutedText
+  context.fillStyle = theme.colors.mutedText
   const label = fragment.title ?? fragment.alt ?? fragment.url
   context.fillText(label.slice(0, 80), x + 16, y + theme.typography.body.lineHeight)
 }
 
-function drawThematicBreak(context: CanvasRenderingContext2D, fragment: PaintThematicBreakFragment): void {
-  context.strokeStyle = COLORS.border
+function drawThematicBreak(context: CanvasRenderingContext2D, fragment: PaintThematicBreakFragment, theme: Theme): void {
+  context.strokeStyle = theme.colors.border
   context.lineWidth = 1
   context.beginPath()
   context.moveTo(fragment.box.x, fragment.box.y + 0.5)
@@ -389,8 +435,8 @@ function drawThematicBreak(context: CanvasRenderingContext2D, fragment: PaintThe
 
 function fontForRun(
   run: PaintLineRun,
-  baseTypography: typeof defaultTheme.typography.body,
-  theme: typeof defaultTheme,
+  baseTypography: Theme['typography']['body'],
+  theme: Theme,
 ): string {
   switch (run.styleKind) {
     case 'strong':
@@ -408,38 +454,25 @@ function fontForRun(
   }
 }
 
-function colorForRun(run: PaintLineRun): string {
+function colorForRun(run: PaintLineRun, theme: Theme): string {
   switch (run.styleKind) {
     case 'link':
-      return COLORS.link
+      return theme.colors.link
     case 'delete':
-      return COLORS.mutedText
+      return theme.colors.mutedText
     default:
-      return COLORS.text
+      return theme.colors.text
   }
-}
-
-function withFontStyle(font: string, style: 'italic'): string {
-  if (new RegExp(`\\b${style}\\b`, 'i').test(font)) {
-    return font
-  }
-
-  return `${style} ${font}`
-}
-
-function withFontWeight(font: string, weight: 'bold'): string {
-  if (new RegExp(`\\b${weight}\\b`, 'i').test(font)) {
-    return font
-  }
-
-  return `${weight} ${font}`
 }
 
 function resolveHeadingTypography(
   fragment: PaintHeadingFragment,
-  theme: typeof defaultTheme,
-): typeof defaultTheme.typography.body {
-  return fragment.depth <= 1 ? theme.typography.h1 : theme.typography.h2
+  theme: Theme,
+): Theme['typography']['body'] {
+  if (fragment.depth <= 1) return theme.typography.h1
+  if (fragment.depth === 2) return theme.typography.h2
+  if (fragment.depth === 3) return theme.typography.h3
+  return theme.typography.h4 // h4, h5, h6
 }
 
 function findFirstLine(children: PaintBlockFragment[]): PaintLineBox | null {
@@ -460,13 +493,6 @@ function findFirstLine(children: PaintBlockFragment[]): PaintLineBox | null {
   return null
 }
 
-function withItalic(font: string): string {
-  if (/\bitalic\b/i.test(font)) {
-    return font
-  }
-
-  return `italic ${font}`
-}
 
 function drawTaskCheckbox(
   context: CanvasRenderingContext2D,
@@ -474,6 +500,7 @@ function drawTaskCheckbox(
   baseline: number,
   lineHeight: number,
   checked: boolean,
+  theme: Theme,
 ): void {
   const size = Math.round(lineHeight * 0.42)
   const boxX = x
@@ -481,7 +508,7 @@ function drawTaskCheckbox(
   const r = 3
 
   if (checked) {
-    context.fillStyle = '#374151'
+    context.fillStyle = theme.colors.checkboxChecked
     context.beginPath()
     context.moveTo(boxX + r, boxY)
     context.lineTo(boxX + size - r, boxY)
@@ -495,7 +522,7 @@ function drawTaskCheckbox(
     context.closePath()
     context.fill()
 
-    context.strokeStyle = '#ffffff'
+    context.strokeStyle = theme.colors.checkboxCheckedMark
     context.lineWidth = Math.max(1.5, size * 0.11)
     context.lineCap = 'round'
     context.lineJoin = 'round'
@@ -505,7 +532,7 @@ function drawTaskCheckbox(
     context.lineTo(boxX + size * 0.78, boxY + size * 0.28)
     context.stroke()
   } else {
-    context.strokeStyle = '#9ca3af'
+    context.strokeStyle = theme.colors.checkboxUnchecked
     context.lineWidth = 1.5
     context.beginPath()
     context.moveTo(boxX + r, boxY)

@@ -10,7 +10,7 @@ import type {
   ParagraphNode,
   TableNode,
 } from '../../document/types'
-import { defaultTheme } from '../../theme/default-theme'
+import { defaultTheme, type Theme } from '../../theme/default-theme'
 import type {
   BlockquoteFragment,
   BlockLayoutFragment,
@@ -33,7 +33,7 @@ type LayoutContext = {
   x: number
   y: number
   width: number
-  theme: typeof defaultTheme
+  theme: Theme
 }
 
 type LayoutResult<T extends BlockLayoutFragment> = {
@@ -41,7 +41,7 @@ type LayoutResult<T extends BlockLayoutFragment> = {
   nextY: number
 }
 
-export function layoutDocument(doc: MarkdownDocument, theme = defaultTheme): BlockLayoutFragment[] {
+export function layoutDocument(doc: MarkdownDocument, theme: Theme = defaultTheme): BlockLayoutFragment[] {
   const { fragments } = layoutBlocks(doc.children, {
     x: theme.page.margin.left,
     y: theme.page.margin.top,
@@ -59,6 +59,12 @@ function layoutBlocks(nodes: BlockNode[], context: LayoutContext): { fragments: 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]!
     const nextNode = nodes[i + 1]
+
+    // Apply heading top margin when the heading is preceded by other content.
+    if (node.type === 'heading' && i > 0) {
+      cursorY += context.theme.blocks.heading.marginTop
+    }
+
     const laidOut = layoutBlock(node, { ...context, y: cursorY })
 
     fragments.push(laidOut.fragment)
@@ -433,13 +439,13 @@ function layoutInlineLines(
   x: number,
   y: number,
   width: number,
-  theme: typeof defaultTheme,
-  bodyStyle: typeof defaultTheme.typography.body,
+  theme: Theme,
+  bodyStyle: Theme['typography']['body'],
 ): LineBox[] {
   return offsetLineBoxes(layoutInlineRuns(runs, Math.max(1, width), withBodyTypography(theme, bodyStyle)), x, y)
 }
 
-function withBodyTypography(theme: typeof defaultTheme, bodyStyle: typeof defaultTheme.typography.body): typeof defaultTheme {
+function withBodyTypography(theme: Theme, bodyStyle: Theme['typography']['body']): Theme {
   return {
     ...theme,
     typography: {
@@ -449,12 +455,11 @@ function withBodyTypography(theme: typeof defaultTheme, bodyStyle: typeof defaul
   }
 }
 
-function headingTypography(depth: number, theme: typeof defaultTheme): typeof defaultTheme.typography.body {
-  if (depth <= 1) {
-    return theme.typography.h1
-  }
-
-  return theme.typography.h2
+function headingTypography(depth: number, theme: Theme): Theme['typography']['body'] {
+  if (depth <= 1) return theme.typography.h1
+  if (depth === 2) return theme.typography.h2
+  if (depth === 3) return theme.typography.h3
+  return theme.typography.h4 // h4, h5, h6
 }
 
 function resolveListMarker(node: ListNode, checked: boolean | null, index: number): ListMarker {

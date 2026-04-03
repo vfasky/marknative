@@ -41,6 +41,9 @@ import type {
   Painter,
 } from '../paint/types'
 import { defaultTheme } from '../theme/default-theme'
+import type { ThemeOverrides } from '../theme/default-theme'
+import type { BuiltInThemeName } from '../theme/built-in-themes'
+import { resolveTheme } from '../theme/built-in-themes'
 
 const require = createRequire(import.meta.url)
 
@@ -49,6 +52,12 @@ export type RenderMarkdownOptions = {
   painter?: Painter
   /** Render all content into a single image instead of paginating. Capped at MAX_SINGLE_PAGE_HEIGHT px tall. */
   singlePage?: boolean
+  /**
+   * Theme to use for rendering.
+   * - A `BuiltInThemeName` string (e.g. `'dark'`, `'nord'`) selects a preset.
+   * - A `ThemeOverrides` object is merged onto `defaultTheme`.
+   */
+  theme?: ThemeOverrides | BuiltInThemeName
 }
 
 export type RenderPage =
@@ -64,20 +73,21 @@ export type RenderPage =
     }
 
 export async function renderMarkdown(markdown: string, options: RenderMarkdownOptions = {}): Promise<RenderPage[]> {
+  const theme = resolveTheme(options.theme)
   const restoreMeasurementSupport = ensureTextMeasurementSupport()
   let paintPages: PaintPage[]
 
   try {
-    const fragments = layoutDocument(parseMarkdown(markdown), defaultTheme)
+    const fragments = layoutDocument(parseMarkdown(markdown), theme)
     const layoutPages = options.singlePage
-      ? [singlePageFromFragments(fragments, defaultTheme)]
-      : paginateFragments(fragments, defaultTheme)
+      ? [singlePageFromFragments(fragments, theme)]
+      : paginateFragments(fragments, theme)
     paintPages = layoutPages.map(mapLayoutPageToPaintPage)
   } finally {
     restoreMeasurementSupport()
   }
 
-  const painter = options.painter ?? createSkiaCanvasPainter(defaultTheme)
+  const painter = options.painter ?? createSkiaCanvasPainter(theme)
   const format = options.format ?? 'png'
 
   return Promise.all(

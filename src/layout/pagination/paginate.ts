@@ -1,4 +1,4 @@
-import { defaultTheme } from '../../theme/default-theme'
+import { defaultTheme, type Theme } from '../../theme/default-theme'
 import type {
   BlockLayoutFragment,
   CodeFragment,
@@ -66,7 +66,7 @@ function paginateFragment(
   fragment: LayoutFragment,
   state: PageState,
   pages: Page[],
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): PageState {
   switch (fragment.kind) {
     case 'paragraph':
@@ -77,8 +77,16 @@ function paginateFragment(
       return paginateCode(fragment, state, pages, theme)
     case 'table':
       return paginateTable(fragment, state, pages, theme)
-    case 'heading':
-      return placeAtomicFragment(fragment, state, pages, theme, theme.blocks.heading.marginBottom)
+    case 'heading': {
+      let next = placeAtomicFragment(fragment, state, pages, theme, theme.blocks.heading.marginBottom)
+      // Widow guard: if less than 2 body lines remain after the heading, push the
+      // heading to the next page so it is never stranded alone at the bottom.
+      const minFollow = theme.typography.body.lineHeight * 2
+      if (availableHeight(next, theme) < minFollow && next.page.fragments.length > 1) {
+        next = finishPage(next, pages, theme)
+      }
+      return next
+    }
     case 'blockquote':
       return placeAtomicFragment(fragment, state, pages, theme, theme.blocks.quote.marginBottom)
     case 'image':
@@ -94,7 +102,7 @@ function paginateParagraph(
   fragment: ParagraphFragment,
   state: PageState,
   pages: Page[],
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): PageState {
   let index = 0
   let current = state
@@ -144,7 +152,7 @@ function paginateList(
   fragment: ListFragment,
   state: PageState,
   pages: Page[],
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): PageState {
   let index = 0
   let current = state
@@ -194,7 +202,7 @@ function paginateCode(
   fragment: CodeFragment,
   state: PageState,
   pages: Page[],
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): PageState {
   let index = 0
   let current = state
@@ -249,7 +257,7 @@ function paginateTable(
   fragment: TableFragment,
   state: PageState,
   pages: Page[],
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): PageState {
   let current = ensurePageForContent(state, pages, theme)
 
@@ -310,7 +318,7 @@ function placeAtomicFragment<T extends BlockLayoutFragment>(
   fragment: T,
   state: PageState,
   pages: Page[],
-  theme: typeof defaultTheme,
+  theme: Theme,
   marginBottom: number,
 ): PageState {
   let current = ensurePageForContent(state, pages, theme)
@@ -331,7 +339,7 @@ function placePiece<T extends BlockLayoutFragment>(
   fragment: T,
   state: PageState,
   pages: Page[],
-  _theme: typeof defaultTheme,
+  _theme: Theme,
   marginBottom: number,
 ): PageState {
   state.page.fragments.push(fragment)
@@ -345,7 +353,7 @@ function sliceParagraph(
   startIndex: number,
   endIndex: number,
   startY: number,
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): ParagraphFragment {
   const lines = fragment.lines.slice(startIndex, endIndex)
   const boxHeight = sumHeights(lines)
@@ -371,7 +379,7 @@ function sliceList(
   startIndex: number,
   endIndex: number,
   startY: number,
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): ListFragment {
   const items = fragment.items.slice(startIndex, endIndex)
   const firstItem = items[0]
@@ -400,7 +408,7 @@ function sliceCode(
   startIndex: number,
   endIndex: number,
   startY: number,
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): CodeFragment {
   const lines = fragment.lines.slice(startIndex, endIndex)
   const firstLine = lines[0]
@@ -458,7 +466,7 @@ function sliceTable(
   startIndex: number,
   endIndex: number,
   startY: number,
-  theme: typeof defaultTheme,
+  theme: Theme,
 ): TableFragment {
   const rows = fragment.rows.slice(startIndex, endIndex)
   const firstRow = rows[0]
@@ -482,7 +490,7 @@ function sliceTable(
   ) as TableFragment
 }
 
-function ensurePageForContent(state: PageState, pages: Page[], theme: typeof defaultTheme): PageState {
+function ensurePageForContent(state: PageState, pages: Page[], theme: Theme): PageState {
   if (state.page.fragments.length === 0 && state.cursorY === theme.page.margin.top) {
     return state
   }
@@ -494,7 +502,7 @@ function ensurePageForContent(state: PageState, pages: Page[], theme: typeof def
   return finishPage(state, pages, theme)
 }
 
-function finishPage(state: PageState, pages: Page[], theme: typeof defaultTheme): PageState {
+function finishPage(state: PageState, pages: Page[], theme: Theme): PageState {
   if (state.page.fragments.length > 0) {
     pages.push(state.page)
   }
@@ -502,11 +510,11 @@ function finishPage(state: PageState, pages: Page[], theme: typeof defaultTheme)
   return createPageState(theme)
 }
 
-function availableHeight(state: PageState, theme: typeof defaultTheme): number {
+function availableHeight(state: PageState, theme: Theme): number {
   return theme.page.height - theme.page.margin.bottom - state.cursorY
 }
 
-function createPageState(theme: typeof defaultTheme): PageState {
+function createPageState(theme: Theme): PageState {
   return {
     page: {
       type: 'page',
