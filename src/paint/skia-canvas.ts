@@ -1,4 +1,4 @@
-import type { CanvasRenderingContext2D } from 'skia-canvas'
+import type { CanvasRenderingContext2D, Image as SkiaImage } from 'skia-canvas'
 
 import type {
   PaintBlockFragment,
@@ -37,6 +37,7 @@ type SkiaCanvasModule = {
     getContext(type?: '2d'): CanvasRenderingContext2D
     toBuffer(format: 'png' | 'svg'): Promise<Buffer>
   }
+  loadImage: (src: string | Buffer) => Promise<SkiaImage>
 }
 
 let skiaCanvasLoader: Promise<SkiaCanvasModule> | null = null
@@ -78,9 +79,63 @@ async function renderWithSkia(
   if (scale !== 1) {
     context.scale(scale, scale)
   }
-  drawPage(context, page, theme)
+
+  const images = await preloadPageImages(page, skiaCanvas)
+  drawPage(context, page, theme, images)
 
   return canvas.toBuffer(format)
+}
+
+async function preloadPageImages(page: PaintPage, skiaCanvas: SkiaCanvasModule): Promise<Map<string, SkiaImage>> {
+  const urls = new Set<string>()
+  for (const fragment of page.fragments) {
+    collectImageUrls(fragment, urls)
+  }
+
+  const entries = await Promise.all(
+    [...urls].map(async (url) => {
+      try {
+        const src = await fetchImageSource(url)
+        const image = await skiaCanvas.loadImage(src)
+        return [url, image] as const
+      } catch {
+        return null
+      }
+    }),
+  )
+
+  return new Map(entries.filter((e): e is [string, SkiaImage] => e !== null))
+}
+
+async function fetchImageSource(url: string): Promise<string | Buffer> {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return Buffer.from(await response.arrayBuffer())
+  }
+
+  // local file path or file:// URL — pass through directly
+  return url.startsWith('file://') ? new URL(url).pathname : url
+}
+
+function collectImageUrls(fragment: PaintBlockFragment, urls: Set<string>): void {
+  switch (fragment.kind) {
+    case 'image':
+      urls.add(fragment.url)
+      return
+    case 'list':
+      for (const item of fragment.items) {
+        for (const child of item.children) {
+          collectImageUrls(child, urls)
+        }
+      }
+      return
+    case 'blockquote':
+      for (const child of fragment.children) {
+        collectImageUrls(child, urls)
+      }
+      return
+  }
 }
 
 function prepareContext(context: CanvasRenderingContext2D): void {
@@ -91,12 +146,12 @@ function prepareContext(context: CanvasRenderingContext2D): void {
   context.imageSmoothingEnabled = true
 }
 
-function drawPage(context: CanvasRenderingContext2D, page: PaintPage, theme: typeof defaultTheme): void {
+function drawPage(context: CanvasRenderingContext2D, page: PaintPage, theme: typeof defaultTheme, images: Map<string, SkiaImage>): void {
   context.fillStyle = COLORS.background
   context.fillRect(0, 0, page.width, page.height)
 
   for (const fragment of page.fragments) {
-    drawFragment(context, fragment, theme)
+    drawFragment(context, fragment, theme, images)
   }
 }
 
@@ -104,6 +159,7 @@ function drawFragment(
   context: CanvasRenderingContext2D,
   fragment: PaintBlockFragment,
   theme: typeof defaultTheme,
+  images: Map<string, SkiaImage>,
 ): void {
   if (fragment.kind === 'heading') {
     drawLines(context, fragment.lines, resolveHeadingTypography(fragment, theme), theme)
@@ -120,16 +176,16 @@ function drawFragment(
       drawCodeFragment(context, fragment, theme)
       return
     case 'list':
-      drawListFragment(context, fragment, theme)
+      drawListFragment(context, fragment, theme, images)
       return
     case 'blockquote':
-      drawBlockquoteFragment(context, fragment, theme)
+      drawBlockquoteFragment(context, fragment, theme, images)
       return
     case 'table':
       drawTableFragment(context, fragment, theme)
       return
     case 'image':
-      drawImageFragment(context, fragment, theme)
+      drawImageFragment(context, fragment, theme, images)
       return
     case 'thematicBreak':
       drawThematicBreak(context, fragment)
@@ -224,11 +280,11 @@ function drawCodeFragment(context: CanvasRenderingContext2D, fragment: PaintCode
   drawLines(context, fragment.lines, theme.typography.code, theme)
 }
 
-function drawListFragment(context: CanvasRenderingContext2D, fragment: PaintListFragment, theme: typeof defaultTheme): void {
+function drawListFragment(context: CanvasRenderingContext2D, fragment: PaintListFragment, theme: typeof defaultTheme, images: Map<string, SkiaImage>): void {
   for (const item of fragment.items) {
     drawListMarker(context, item, theme)
     for (const child of item.children) {
-      drawFragment(context, child, theme)
+      drawFragment(context, child, theme, images)
     }
   }
 }
@@ -262,6 +318,7 @@ function drawBlockquoteFragment(
   context: CanvasRenderingContext2D,
   fragment: Extract<PaintBlockFragment, { kind: 'blockquote' }>,
   theme: typeof defaultTheme,
+  images: Map<string, SkiaImage>,
 ): void {
   context.fillStyle = '#f8fafc'
   context.fillRect(fragment.box.x, fragment.box.y, fragment.box.width, fragment.box.height)
@@ -269,7 +326,7 @@ function drawBlockquoteFragment(
   context.fillRect(fragment.box.x, fragment.box.y, 4, fragment.box.height)
 
   for (const child of fragment.children) {
-    drawFragment(context, child, theme)
+    drawFragment(context, child, theme, images)
   }
 }
 
@@ -289,17 +346,35 @@ function drawTableRow(context: CanvasRenderingContext2D, row: PaintTableRowFragm
   }
 }
 
-function drawImageFragment(context: CanvasRenderingContext2D, fragment: PaintImageFragment, theme: typeof defaultTheme): void {
+function drawImageFragment(
+  context: CanvasRenderingContext2D,
+  fragment: PaintImageFragment,
+  theme: typeof defaultTheme,
+  images: Map<string, SkiaImage>,
+): void {
+  const { x, y, width, height } = fragment.box
+  const image = images.get(fragment.url)
+
+  if (image) {
+    const scale = Math.min(width / image.width, height / image.height)
+    const drawWidth = image.width * scale
+    const drawHeight = image.height * scale
+    const drawX = x + (width - drawWidth) / 2
+    const drawY = y + (height - drawHeight) / 2
+    context.drawImage(image as never, drawX, drawY, drawWidth, drawHeight)
+    return
+  }
+
   context.fillStyle = COLORS.imageBackground
-  context.fillRect(fragment.box.x, fragment.box.y, fragment.box.width, fragment.box.height)
+  context.fillRect(x, y, width, height)
   context.strokeStyle = COLORS.imageAccent
   context.lineWidth = 2
-  context.strokeRect(fragment.box.x, fragment.box.y, fragment.box.width, fragment.box.height)
+  context.strokeRect(x, y, width, height)
 
   context.font = theme.typography.body.font
   context.fillStyle = COLORS.mutedText
   const label = fragment.title ?? fragment.alt ?? fragment.url
-  context.fillText(label.slice(0, 80), fragment.box.x + 16, fragment.box.y + theme.typography.body.lineHeight)
+  context.fillText(label.slice(0, 80), x + 16, y + theme.typography.body.lineHeight)
 }
 
 function drawThematicBreak(context: CanvasRenderingContext2D, fragment: PaintThematicBreakFragment): void {

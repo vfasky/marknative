@@ -41,10 +41,14 @@
     "build": "bun build src/index.ts --outdir dist --target node --format esm --external '@chenglou/pretext' --external 'mdast-util-from-markdown' --external 'mdast-util-gfm' --external 'micromark' --external 'micromark-extension-gfm' --external 'skia-canvas' && bunx tsc -p tsconfig.build.json",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
-    "prepublishOnly": "bun run typecheck && bun run test && bun run build"
+    "prepublishOnly": "bun run typecheck && bun run test && bun run build",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "vitepress": "^1.6.4"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -56,6 +60,7 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.3",
+    "marknative": "^0.1.0",
     "mdast-util-from-markdown": "^2.0.0",
     "mdast-util-gfm": "^3.0.0",
     "micromark": "^4.0.0",

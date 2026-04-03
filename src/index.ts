@@ -1,6 +1,7 @@
 export { parseMarkdown } from './parser/parse-markdown'
 export { renderMarkdown } from './render/render-markdown'
 export { defaultTheme } from './theme/default-theme'
+export { MAX_SINGLE_PAGE_HEIGHT } from './layout/pagination/paginate'
 
 export type {
   BlockNode,

@@ -18,7 +18,7 @@ import type {
   ThematicBreakFragment,
 } from '../layout/types'
 import { layoutDocument } from '../layout/block/layout-document'
-import { paginateFragments } from '../layout/pagination/paginate'
+import { paginateFragments, singlePageFromFragments } from '../layout/pagination/paginate'
 import { parseMarkdown } from '../parser/parse-markdown'
 import { createSkiaCanvasPainter } from '../paint/skia-canvas'
 import type {
@@ -47,6 +47,8 @@ const require = createRequire(import.meta.url)
 export type RenderMarkdownOptions = {
   format?: 'png' | 'svg'
   painter?: Painter
+  /** Render all content into a single image instead of paginating. Capped at MAX_SINGLE_PAGE_HEIGHT px tall. */
+  singlePage?: boolean
 }
 
 export type RenderPage =
@@ -66,7 +68,10 @@ export async function renderMarkdown(markdown: string, options: RenderMarkdownOp
   let paintPages: PaintPage[]
 
   try {
-    const layoutPages = paginateFragments(layoutDocument(parseMarkdown(markdown), defaultTheme), defaultTheme)
+    const fragments = layoutDocument(parseMarkdown(markdown), defaultTheme)
+    const layoutPages = options.singlePage
+      ? [singlePageFromFragments(fragments, defaultTheme)]
+      : paginateFragments(fragments, defaultTheme)
     paintPages = layoutPages.map(mapLayoutPageToPaintPage)
   } finally {
     restoreMeasurementSupport()

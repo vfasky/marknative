@@ -233,11 +233,11 @@ All three should render identically as a horizontal rule.
 
 A block-level image with alt text and title:
 
-![marknative render pipeline diagram](https://example.com/pipeline-diagram.png "Render pipeline overview")
+![marknative render pipeline diagram](https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png "Render pipeline overview")
 
 An image inside a paragraph (inline image):
 
-The logo appears here: ![logo](https://example.com/logo.png) in the middle of prose.
+The logo appears here: ![logo](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Stack_Overflow_icon.svg/64px-Stack_Overflow_icon.svg.png) in the middle of prose.
 
 ---
 

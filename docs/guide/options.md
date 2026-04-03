@@ -1,0 +1,65 @@
+# Render Options
+
+`renderMarkdown` accepts an optional second argument of type [`RenderMarkdownOptions`](/api/reference#rendermarkdownoptions):
+
+```ts
+const pages = await renderMarkdown(markdown, {
+  format: 'png',    // 'png' | 'svg'
+  singlePage: false // render into one image instead of paginating
+})
+```
+
+## `format`
+
+**Type:** `'png' | 'svg'`  
+**Default:** `'png'`
+
+Controls the output format for each page.
+
+| Value | Output | `page.data` type |
+| :--- | :--- | :--- |
+| `'png'` | Raster image | `Buffer` |
+| `'svg'` | Vector markup | `string` (UTF-8) |
+
+```ts
+// PNG (default)
+const pngPages = await renderMarkdown(markdown, { format: 'png' })
+pngPages[0].data // Buffer
+
+// SVG
+const svgPages = await renderMarkdown(markdown, { format: 'svg' })
+svgPages[0].data // string
+```
+
+## `singlePage`
+
+**Type:** `boolean`  
+**Default:** `false`
+
+When `true`, all content is placed into a single image whose height adapts to the content, rather than being split across multiple fixed-height pages.
+
+```ts
+const [page] = await renderMarkdown(markdown, { singlePage: true })
+```
+
+- The image height is capped at [`MAX_SINGLE_PAGE_HEIGHT`](/api/reference#max_single_page_height) (16 384 px). Content beyond that point is clipped.
+- The width is always the standard page width from the theme.
+
+See [Single-Page Mode](/guide/single-page) for more details.
+
+## `painter`
+
+**Type:** `Painter` (internal interface)  
+**Default:** skia-canvas painter
+
+Advanced option for supplying a custom paint backend. Useful for testing or alternative rendering targets.
+
+```ts
+import { createSkiaCanvasPainter } from 'marknative/paint' // internal
+
+const pages = await renderMarkdown(markdown, {
+  painter: createSkiaCanvasPainter(myTheme),
+})
+```
+
+> This option is intended for library integrators. Most users should not need it.

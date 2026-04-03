@@ -18,6 +18,31 @@ type PageState = {
 
 const EPSILON = 0.001
 
+export const MAX_SINGLE_PAGE_HEIGHT = 16384
+
+export function singlePageFromFragments(fragments: BlockLayoutFragment[], theme = defaultTheme): Page {
+  if (fragments.length === 0) {
+    return {
+      type: 'page',
+      width: theme.page.width,
+      height: theme.page.margin.top + theme.page.margin.bottom,
+      margin: theme.page.margin,
+      fragments: [],
+    }
+  }
+
+  const contentBottom = Math.max(...fragments.map((f) => f.box.y + f.box.height))
+  const pageHeight = Math.min(contentBottom + theme.page.margin.bottom, MAX_SINGLE_PAGE_HEIGHT)
+
+  return {
+    type: 'page',
+    width: theme.page.width,
+    height: pageHeight,
+    margin: theme.page.margin,
+    fragments,
+  }
+}
+
 export function paginateFragments(fragments: LayoutFragment[], theme = defaultTheme): Page[] {
   if (fragments.length === 0) {
     return []
