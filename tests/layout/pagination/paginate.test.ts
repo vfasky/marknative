@@ -235,6 +235,53 @@ ${Array.from({ length: 14 }, (_, index) => `const item${index + 1} = ${index + 1
     expect(codeFragments.some((fragment) => fragment.sourceLines.includes(''))).toBe(true)
   })
 
+  test('reflows table rows directly beneath the repeated header after page breaks', () => {
+    const tableSplitTheme: Theme = {
+      ...defaultTheme,
+      page: {
+        ...defaultTheme.page,
+        height: 520,
+      },
+    }
+
+    const markdown = `## 8. Tables
+
+| Name | Role | Lines of Code |
+| :--- | :---: | ---: |
+| parse-markdown.ts | Parser entry | 42 |
+| from-mdast.ts | Document model | 180 |
+| layout-document.ts | Block layout | 511 |
+| line-layout.ts | Inline layout | 290 |
+| paginate.ts | Pagination | 95 |
+| skia-canvas.ts | Paint backend | 340 |
+| render-markdown.ts | Render pipeline | 429 |
+
+## 9. Thematic Breaks
+
+Three styles of thematic break are all equivalent in CommonMark.
+`
+
+    const pages = paginateFragments(layoutDocument(parseMarkdown(markdown), tableSplitTheme), tableSplitTheme)
+    const continuedTable = pages
+      .flatMap((page) => page.fragments.filter((fragment) => fragment.kind === 'table'))
+      .find((fragment) => fragment.rows.length > 0 && fragment.box.y === tableSplitTheme.page.margin.top)
+
+    expect(continuedTable).toBeDefined()
+
+    if (!continuedTable) {
+      return
+    }
+
+    expect(continuedTable.rows[0]?.box.y).toBe(continuedTable.header.box.y + continuedTable.header.box.height)
+    expect(
+      continuedTable.rows.every((row, index, rows) => {
+        const previousBottom = index === 0 ? continuedTable.header.box.y + continuedTable.header.box.height : rows[index - 1]!.box.y + rows[index - 1]!.box.height
+        return row.box.y === previousBottom && row.box.y + row.box.height <= continuedTable.box.y + continuedTable.box.height
+      }),
+    ).toBe(true)
+
+  })
+
   test('produces deterministic page counts for mixed technical article content', () => {
     const markdown = `# Architecture Notes
 

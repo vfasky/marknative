@@ -177,3 +177,18 @@ Below
 == Rendered
 ![Thematic break rendered output](/examples/syntax/thematic-break.png)
 :::
+
+## Full Syntax Fixture
+
+The complete multi-page fixture combines every supported Markdown element in one render, including syntax-highlighted fenced code blocks.
+
+![Full syntax fixture page 1](/examples/full-syntax/full-syntax-01.png)
+![Full syntax fixture page 2](/examples/full-syntax/full-syntax-02.png)
+![Full syntax fixture page 3](/examples/full-syntax/full-syntax-03.png)
+![Full syntax fixture page 4](/examples/full-syntax/full-syntax-04.png)
+![Full syntax fixture page 5](/examples/full-syntax/full-syntax-05.png)
+![Full syntax fixture page 6](/examples/full-syntax/full-syntax-06.png)
+![Full syntax fixture page 7](/examples/full-syntax/full-syntax-07.png)
+![Full syntax fixture page 8](/examples/full-syntax/full-syntax-08.png)
+![Full syntax fixture page 9](/examples/full-syntax/full-syntax-09.png)
+![Full syntax fixture page 10](/examples/full-syntax/full-syntax-10.png)

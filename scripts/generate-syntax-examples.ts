@@ -13,8 +13,12 @@ import { renderMarkdown } from '../src'
 const OUT = resolve(import.meta.dir, '..', 'docs', 'public', 'examples', 'syntax')
 await mkdir(OUT, { recursive: true })
 
-async function save(name: string, md: string): Promise<void> {
-  const pages = await renderMarkdown(md, { format: 'png', singlePage: true })
+async function save(
+  name: string,
+  md: string,
+  opts: Parameters<typeof renderMarkdown>[1] = {},
+): Promise<void> {
+  const pages = await renderMarkdown(md, { format: 'png', singlePage: true, ...opts })
   const page = pages[0]
   if (!page || page.format !== 'png') throw new Error('no page')
   await writeFile(resolve(OUT, `${name}.png`), page.data)
@@ -94,7 +98,9 @@ await save('blockquote', `## Blockquotes
 > > > And this is two levels deep.
 `)
 
-await save('code', `## Code Blocks
+await save(
+  'code',
+  `## Code Blocks
 
 \`\`\`typescript
 import { renderMarkdown } from 'marknative'
@@ -109,7 +115,9 @@ for (const [i, page] of pages.entries()) {
 bun add marknative
 bun run render.ts
 \`\`\`
-`)
+`,
+  { codeHighlighting: { theme: 'github-light' } },
+)
 
 await save('table', `## Tables
 

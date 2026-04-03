@@ -468,7 +468,10 @@ function sliceTable(
   startY: number,
   theme: Theme,
 ): TableFragment {
-  const rows = fragment.rows.slice(startIndex, endIndex)
+  const slicedRows = fragment.rows.slice(startIndex, endIndex)
+  const headerBottom = fragment.header.box.y + fragment.header.box.height
+  const firstRowY = slicedRows[0]?.box.y ?? headerBottom
+  const rows = slicedRows.map((row) => translateTableRow(row, 0, headerBottom - firstRowY))
   const firstRow = rows[0]
   const lastRow = rows[rows.length - 1]
   const bodyHeight = firstRow && lastRow ? lastRow.box.y + lastRow.box.height - firstRow.box.y : 0

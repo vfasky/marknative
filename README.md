@@ -20,18 +20,28 @@ The result is deterministic, server-renderable, and completely headless.
 
 ## Gallery
 
+Full syntax fixture, rendered across 10 pages with syntax-highlighted fenced code blocks:
+
 <table>
   <tr>
-    <td width="50%"><img src="https://oss.liuyaowen.cn/images/full-syntax-01.png" alt="Headings and paragraphs" /></td>
-    <td width="50%"><img src="https://oss.liuyaowen.cn/images/full-syntax-02.png" alt="Inline styles and lists" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-01.png" alt="Full syntax fixture page 1" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-02.png" alt="Full syntax fixture page 2" /></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://oss.liuyaowen.cn/images/full-syntax-05.png" alt="Syntax-highlighted code blocks" /></td>
-    <td width="50%"><img src="https://oss.liuyaowen.cn/images/full-syntax-06.png" alt="Tables" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-03.png" alt="Full syntax fixture page 3" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-04.png" alt="Full syntax fixture page 4" /></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://oss.liuyaowen.cn/images/full-syntax-03.png" alt="Ordered lists and task lists" /></td>
-    <td width="50%"><img src="https://oss.liuyaowen.cn/images/full-syntax-04.png" alt="Blockquotes" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-05.png" alt="Full syntax fixture page 5" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-06.png" alt="Full syntax fixture page 6" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-07.png" alt="Full syntax fixture page 7" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-08.png" alt="Full syntax fixture page 8" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-09.png" alt="Full syntax fixture page 9" /></td>
+    <td width="50%"><img src="https://liyown.github.io/marknative/examples/full-syntax/full-syntax-10.png" alt="Full syntax fixture page 10" /></td>
   </tr>
 </table>
 
