@@ -94,7 +94,9 @@ export type RenderPage =
 export async function renderMarkdown(markdown: string, options: RenderMarkdownOptions = {}): Promise<RenderPage[]> {
   const theme = resolveTheme(options.theme)
   const parsedDoc = parseMarkdown(markdown)
-  const shikiTheme = options.codeHighlighting?.theme ?? 'github-light'
+  // When no explicit shiki theme is given, auto-select based on background luminance
+  // so dark page themes get a dark code theme and remain readable.
+  const shikiTheme = options.codeHighlighting?.theme ?? (isDarkColor(theme.colors.background) ? 'github-dark' : 'github-light')
 
   const fontSize = parseFontSizeFromTheme(theme)
   const [highlightedBlocks, renderedMath] = await Promise.all([
@@ -337,6 +339,16 @@ function mapRun(run: LineRun): PaintLineRun {
 function parseFontSizeFromTheme(theme: { typography: { body: { font: string } } }): number {
   const match = theme.typography.body.font.match(/(\d+(?:\.\d+)?)\s*px/)
   return match ? parseFloat(match[1]!) : 16
+}
+
+/** Returns true when a hex color (#rrggbb) has WCAG relative luminance below 0.5. */
+function isDarkColor(hex: string): boolean {
+  const h = hex.replace('#', '')
+  if (h.length !== 6) return false
+  const r = parseInt(h.slice(0, 2), 16) / 255
+  const g = parseInt(h.slice(2, 4), 16) / 255
+  const b = parseInt(h.slice(4, 6), 16) / 255
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5
 }
 
 // ─── Code block pre-highlighting ─────────────────────────────────────────────
