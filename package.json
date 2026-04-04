@@ -71,9 +71,12 @@
     "micromark-extension-gfm": "^3.0.0",
     "micromark-extension-math": "^3.1.0",
     "shiki": "^4.0.2",
-    "skia-canvas": "^2.0.0"
+    "skia-canvas": "^3.0.8"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "trustedDependencies": [
+    "skia-canvas"
+  ]
 }

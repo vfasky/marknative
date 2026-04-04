@@ -18,7 +18,7 @@ type PageState = {
 
 const EPSILON = 0.001
 
-export const MAX_SINGLE_PAGE_HEIGHT = 16384
+export const MAX_SINGLE_PAGE_HEIGHT = 16000
 
 export function singlePageFromFragments(fragments: BlockLayoutFragment[], theme = defaultTheme): Page {
   if (fragments.length === 0) {
@@ -31,8 +31,12 @@ export function singlePageFromFragments(fragments: BlockLayoutFragment[], theme 
     }
   }
 
+  // fragments 的 y 坐标是绝对坐标（从 margin.top 开始）
+  // 内容底部 = 最后一个 fragment 的底部
+  // 总高度 = 内容底部 + margin.bottom（因为 y 已经包含了 margin.top）
   const contentBottom = Math.max(...fragments.map((f) => f.box.y + f.box.height))
-  const pageHeight = Math.min(contentBottom + theme.page.margin.bottom, MAX_SINGLE_PAGE_HEIGHT)
+  const totalHeight = contentBottom + theme.page.margin.bottom
+  const pageHeight = Math.min(totalHeight, MAX_SINGLE_PAGE_HEIGHT)
 
   return {
     type: 'page',
