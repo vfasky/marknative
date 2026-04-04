@@ -58,6 +58,7 @@ export default defineConfig({
           text: 'Advanced',
           items: [
             { text: 'Performance', link: '/guide/performance' },
+            { text: 'Claude Code Skill', link: '/guide/skill' },
           ],
         },
       ],
