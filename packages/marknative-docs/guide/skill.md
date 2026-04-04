@@ -5,13 +5,7 @@
 ## Install
 
 ```bash
-claude mcp add marknative-skill npx marknative-skill
-```
-
-Or install globally and reference the package:
-
-```bash
-npm install -g marknative-skill
+npx skills add marknative-skill
 ```
 
 ## What it does
