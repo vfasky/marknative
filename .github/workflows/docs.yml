@@ -40,7 +40,7 @@ jobs:
 
       - name: Rebuild skia-canvas for Linux
         run: |
-          SKIA=$(node -e "const p=require('path');const m=require('module');const r=m.createRequire(p.join(process.cwd(),'packages/marknative/package.json'));console.log(r.resolve('skia-canvas/package.json').replace('/package.json',''))")
+          SKIA=$(node -e "const p=require('path'),fs=require('fs'),m=require('module');const r=m.createRequire(p.join(process.cwd(),'packages/marknative/package.json'));let d=p.dirname(r.resolve('skia-canvas'));while(!fs.existsSync(p.join(d,'package.json')))d=p.dirname(d);console.log(d)")
           cd "$SKIA" && npx node-pre-gyp install --fallback-to-build=false
 
       - name: Build docs
