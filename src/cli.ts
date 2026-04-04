@@ -13,9 +13,10 @@ import { parseArgs } from 'node:util'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { resolve, dirname, basename, extname } from 'node:path'
 
-import { renderMarkdown } from './render/render-markdown'
-import type { RenderMarkdownOptions } from './render/render-markdown'
-import { BUILT_IN_THEME_NAMES } from './theme/built-in-themes'
+// Import from the compiled library bundle at runtime so the CLI does not
+// duplicate library code in its own bundle.
+import { renderMarkdown, BUILT_IN_THEME_NAMES } from 'marknative'
+import type { RenderMarkdownOptions } from 'marknative'
 
 // ─── Argument parsing ─────────────────────────────────────────────────────────
 
