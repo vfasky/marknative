@@ -1,0 +1,57 @@
+# image: ${CI_IMAGE_FC}
+image: registry-vpc.cn-hangzhou.aliyuncs.com/yz-devops/yz-devops:bun1-node20-builder-v1
+
+variables:
+    FUN_NAME: 'yz-fc-marknative'
+    APP_PORT: 3000
+    APP_DESCRIPTION: 'marknative API '
+    APP_VERSION: ${CI_COMMIT_TAG}
+    APP_IMAGE_NAME: ${CI_REGISTRY}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}
+    APP_FC_PDF_SERVICE: ${APP_FC_PDF_SERVICE} 
+.deploy_app: &deploy_app
+    script:
+        - rm ./package.json & rm ./bun.lock
+        - bun install @serverless-devs/s
+        - bunx s config add --AccountID ${ALIYUN_ACCOUNT_ID} --AccessKeyID ${ALIYUN_ACCESS_KEY_ID} --AccessKeySecret ${ALIYUN_ACCESS_KEY_SECRET} -a default
+        - bunx s deploy --use-local -y
+
+stages:
+    - build_image
+    - deploy
+
+build_image:
+    stage: build_image
+    script:
+        - docker login --username=${CI_REGISTRY_USER} --password=${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+        - docker build -t ${APP_IMAGE_NAME} .
+        - docker push ${APP_IMAGE_NAME}
+    only:
+        # - dev
+        - /^sit-.*/
+        - /^prd-.*/
+    except:
+        - branches
+
+deploy_sit:
+    stage: deploy
+    tags:
+        - nodejs
+    variables:
+        APP_SERVICE_NAME: ${CI_PROJECT_NAME}-${APP_ENV}
+        APP_FUN_NAME: ${FUN_NAME}-${APP_ENV}
+        APP_ENV: 'sit'
+    <<: *deploy_app
+    only:
+        - /^sit-.*/
+
+deploy_prd:
+    stage: deploy
+    tags:
+        - nodejs
+    variables:
+        APP_SERVICE_NAME: ${CI_PROJECT_NAME}-${APP_ENV}
+        APP_FUN_NAME: ${FUN_NAME}-${APP_ENV}
+        APP_ENV: 'prd' 
+    <<: *deploy_app
+    only:
+        - /^prd-.*/

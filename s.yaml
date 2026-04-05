@@ -1,0 +1,57 @@
+edition: 1.0.0
+name: ${env(APP_SERVICE_NAME)}
+access: default
+services:
+    ${env(APP_SERVICE_NAME)}:
+        component: devsapp/fc
+        props:
+            region: cn-hangzhou
+            service:
+                name: ${env(APP_SERVICE_NAME)}
+                description: ${env(APP_DESCRIPTION)}
+                internetAccess: true
+                logConfig:
+                    enableRequestMetrics: true
+                    enableInstanceMetrics: true
+                    logBeginRule: DefaultRegex
+                    project: serverless-cn-hangzhou-74953921-6584-5f81-b188-bc8704dac418
+                    logstore: default-logs
+                vpcConfig:
+                    securityGroupId: ${env(ALIYUN_SECURITY_GROUP)}
+                    vpcId: ${env(ALIYUN_VPC)}
+                    vSwitchIds:
+                        - ${env(ALIYUN_SWITCH)}
+
+            function:
+                name: ${env(APP_FUN_NAME)}
+                description: ${env(APP_DESCRIPTION)}
+                runtime: custom-container
+                customContainerConfig:
+                    accelerationType: Default
+                    image: ${env(APP_IMAGE_NAME)}
+                environmentVariables:
+                    APP_ENV: ${env(APP_ENV)}
+                    APP_NAME: ${env(APP_SERVICE_NAME)}
+                    APP_VERSION: ${env(APP_VERSION)}
+                caPort: 3000
+                memorySize: 2048
+                timeout: 86400
+                codeUri: ''
+                handler: index.handler
+                instanceConcurrency: 200
+                instanceType: e1
+                diskSize: 512
+                cpu: 2
+            triggers:
+                - name: httpTrigger
+                  type: http
+                  config:
+                      authType: anonymous
+                      methods:
+                          - GET
+                          - POST
+                          - PUT
+                          - DELETE
+                          - HEAD
+                          - PATCH
+                          - OPTIONS

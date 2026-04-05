@@ -52,7 +52,7 @@ const renderRequestSchema = z.object({
 });
 
 Bun.serve({
-  port: 3000,
+  port: Number(process.env.APP_PORT || 3000),
   routes: {
     "/": {
       GET: () => {
