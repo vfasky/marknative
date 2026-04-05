@@ -1,14 +1,63 @@
-import { renderMarkdown, mergeTheme, defaultTheme } from './src/index.js'
+import { ZodError, z } from "zod";
+
+import {
+  BUILT_IN_THEME_NAMES,
+  mergeTheme,
+  renderMarkdown,
+  resolveTheme,
+} from "./src/index.js";
+import type { BuiltInThemeName, ThemeOverrides } from "./src/index.js";
 
 // 最大单页高度限制（像素）
-const MAX_SINGLE_PAGE_HEIGHT = 16000
+const MAX_SINGLE_PAGE_HEIGHT = 16000;
+
+const renderRequestSchema = z.object({
+  markdown: z.string().min(1, "缺少 markdown 参数"),
+  format: z
+    .string()
+    .optional()
+    .default("png")
+    .refine((value): value is "png" | "svg" => value === "png" || value === "svg", {
+      message: "format 仅支持 png 或 svg",
+    })
+    .transform((value) => value as "png" | "svg"),
+  width: z.preprocess(
+    (value) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 1080;
+    },
+    z.number().transform((value) => Math.max(400, Math.min(2160, value))),
+  ),
+  theme: z
+    .unknown()
+    .optional()
+    .default("default")
+    .refine(
+      (value): value is BuiltInThemeName | ThemeOverrides =>
+        typeof value === "string"
+          ? BUILT_IN_THEME_NAMES.includes(value as BuiltInThemeName)
+          : typeof value === "object" && value !== null && !Array.isArray(value),
+      {
+        message: `theme 必须是以下内置主题之一：${BUILT_IN_THEME_NAMES.join(", ")}，或传入主题对象`,
+      },
+    )
+    .transform((value) => value as BuiltInThemeName | ThemeOverrides),
+  scale: z.preprocess(
+    (value) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
+    },
+    z.number().transform((value) => Math.max(1, Math.min(3, value))),
+  ),
+});
 
 Bun.serve({
   port: 3000,
   routes: {
-    '/': {
+    "/": {
       GET: () => {
-        return new Response(`
+        return new Response(
+          `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -164,7 +213,7 @@ $$
 
     <div class="form-row">
       <label>图片宽度：</label>
-      <input type="number" id="width" value="1080" min="400" max="2160" step="100">
+      <input type="number" id="width" value="1080" min="400" max="2160" step="10">
       <small>像素（默认 1080）</small>
     </div>
 
@@ -250,97 +299,102 @@ $$
   </script>
 </body>
 </html>
-`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
-      }
+`,
+          { headers: { "Content-Type": "text/html; charset=utf-8" } },
+        );
+      },
     },
 
-    '/health': {
-      GET: () => new Response('OK')
+    "/health": {
+      GET: () => new Response("OK"),
     },
 
-    '/render': {
+    "/render": {
       POST: async (req) => {
         try {
-          const body = await req.json()
           const {
             markdown,
-            format = 'png',
-            width = 1080,
-            theme: themeName = 'default',
-            scale = 2
-          } = body
-
-          if (!markdown) {
-            return new Response('缺少 markdown 参数', { status: 400 })
-          }
-
-          // 验证参数
-          const pageWidth = Math.max(400, Math.min(2160, Number(width) || 1080))
-          const scaleFactor = Math.max(1, Math.min(3, Number(scale) || 2))
+            format,
+            width: pageWidth,
+            theme: themeName,
+            scale: scaleFactor,
+          } = renderRequestSchema.parse(await req.json());
 
           // 预估高度检查
-          const estimatedLines = markdown.split('\\n').length
-          const estimatedHeight = (estimatedLines * 50 + 200) * scaleFactor
+          const estimatedLines = markdown.split("\\n").length;
+          const estimatedHeight = (estimatedLines * 50 + 200) * scaleFactor;
           if (estimatedHeight > MAX_SINGLE_PAGE_HEIGHT) {
             return new Response(
               `内容过长，预估渲染高度 (${Math.round(estimatedHeight)} 像素) 超出最大限制 (${MAX_SINGLE_PAGE_HEIGHT} 像素)。建议：1) 减小宽度 2) 降低缩放比例 3) 缩短内容`,
-              { status: 400 }
-            )
+              { status: 400 },
+            );
           }
 
           // 获取基础主题
-          const { getBuiltInTheme } = await import('./src/theme/built-in-themes.js')
-          const baseTheme = typeof themeName === 'string' ? getBuiltInTheme(themeName) : themeName
+          const baseTheme = resolveTheme(themeName);
 
           // 创建自定义主题
           const customTheme = mergeTheme(baseTheme, {
-            page: { width: pageWidth, height: MAX_SINGLE_PAGE_HEIGHT }
-          })
+            page: { width: pageWidth, height: MAX_SINGLE_PAGE_HEIGHT },
+          });
 
           // 渲染
           const pages = await renderMarkdown(markdown, {
-            format: format as 'png' | 'svg',
+            format,
             theme: customTheme,
             singlePage: true,
-            scale: scaleFactor
-          })
+            scale: scaleFactor,
+          });
 
-          const first = pages[0]
+          const first = pages[0];
           if (!first) {
-            return new Response('渲染失败：未生成输出', { status: 500 })
+            return new Response("渲染失败：未生成输出", { status: 500 });
           }
 
           // 检查实际高度
-          const scaledHeight = first.page.height * scaleFactor
+          const scaledHeight = first.page.height * scaleFactor;
           if (scaledHeight > MAX_SINGLE_PAGE_HEIGHT) {
             return new Response(
               `渲染后的图片高度 (${Math.round(scaledHeight)} 像素) 超出最大限制 (${MAX_SINGLE_PAGE_HEIGHT} 像素)。建议：1) 减小宽度 2) 降低缩放比例 3) 缩短内容`,
-              { status: 400 }
-            )
+              { status: 400 },
+            );
           }
 
           return new Response(first.data, {
             headers: {
-              'Content-Type': format === 'png' ? 'image/png' : 'image/svg+xml',
-              'X-Pages-Total': String(pages.length),
-              'X-Page-Width': String(first.page.width),
-              'X-Page-Height': String(first.page.height),
-              'X-Scaled-Height': String(scaledHeight)
-            }
-          })
+              "Content-Type": format === "png" ? "image/png" : "image/svg+xml",
+              "X-Pages-Total": String(pages.length),
+              "X-Page-Width": String(first.page.width),
+              "X-Page-Height": String(first.page.height),
+              "X-Scaled-Height": String(scaledHeight),
+            },
+          });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error)
-          if (errorMessage.includes('bitmap') || errorMessage.includes('allocate')) {
-            return new Response(
-              '渲染失败：图片尺寸过大，超出内存限制。建议：1) 减小宽度 2) 降低缩放比例 3) 缩短内容',
-              { status: 400 }
-            )
+          if (error instanceof SyntaxError) {
+            return new Response("请求体必须是合法 JSON", { status: 400 });
           }
-          return new Response('渲染错误: ' + errorMessage, { status: 500 })
+          if (error instanceof ZodError) {
+            return new Response(
+              error.issues.map((issue) => issue.message).join("；"),
+              { status: 400 },
+            );
+          }
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (
+            errorMessage.includes("bitmap") ||
+            errorMessage.includes("allocate")
+          ) {
+            return new Response(
+              "渲染失败：图片尺寸过大，超出内存限制。建议：1) 减小宽度 2) 降低缩放比例 3) 缩短内容",
+              { status: 400 },
+            );
+          }
+          return new Response("渲染错误: " + errorMessage, { status: 500 });
         }
-      }
-    }
-  }
-})
+      },
+    },
+  },
+});
 
-console.log('API 服务已启动：http://localhost:3000')
+console.log("API 服务已启动：http://localhost:3000");

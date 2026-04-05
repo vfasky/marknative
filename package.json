@@ -44,6 +44,9 @@
     "build": "bun build src/index.ts --outdir dist --target node --format esm --external '@chenglou/pretext' --external 'mdast-util-from-markdown' --external 'mdast-util-gfm' --external 'micromark' --external 'micromark-extension-gfm' --external 'skia-canvas' --external 'shiki' && bun build src/cli.ts --outdir dist --target node --format esm --external 'marknative' && bunx tsc -p tsconfig.build.json && bun scripts/postbuild.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
+    "docker:build": "docker build --target release -t marknative .",
+    "docker:run": "sh -c 'docker run --rm -p ${PORT:-3000}:3000 marknative'",
+    "docker:start": "bun run docker:build && bun run docker:run",
     "prepublishOnly": "bun run typecheck && bun run test && bun run build",
     "bench": "bun bench/perf.ts",
     "docs:examples": "bun scripts/generate-all-examples.ts",
@@ -74,7 +77,8 @@
     "micromark-extension-gfm": "^3.0.0",
     "micromark-extension-math": "^3.1.0",
     "shiki": "^4.0.2",
-    "skia-canvas": "^3.0.8"
+    "skia-canvas": "^3.0.8",
+    "zod": "^4.3.6"
   },
   "engines": {
     "node": ">=18"

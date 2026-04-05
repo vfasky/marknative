@@ -16,8 +16,6 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     python3 \
     make \
     g++ \
-    nodejs \
-    npm \
     fonts-wqy-microhei \
     fonts-wqy-zenhei \
     fonts-noto-color-emoji \
@@ -49,8 +47,8 @@ RUN bun install --production
 
 # Force rebuild skia-canvas from source for compatibility
 RUN cd node_modules/skia-canvas && \
-    npm run install || \
-    (npm install node-gyp && npx node-gyp rebuild)
+    bun run install || \
+    bunx node-gyp rebuild
 
 # run the app
 EXPOSE 3000/tcp
