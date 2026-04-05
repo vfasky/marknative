@@ -1,5 +1,5 @@
 # use the official Bun image
-FROM docker.m.daocloud.io/oven/bun:1.3.10 AS base
+FROM docker.m.daocloud.io/oven/bun:1.3.11 AS base
 WORKDIR /usr/src/app
 
 # Set the timezone to UTC+8

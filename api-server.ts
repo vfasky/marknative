@@ -10,6 +10,7 @@ import type { BuiltInThemeName, ThemeOverrides } from "./src/index.js";
 
 // 最大单页高度限制（像素）
 const MAX_SINGLE_PAGE_HEIGHT = 16000;
+const BASE_PATH = "/marknative";
 
 const renderRequestSchema = z.object({
   markdown: z.string().min(1, "缺少 markdown 参数"),
@@ -54,7 +55,7 @@ const renderRequestSchema = z.object({
 Bun.serve({
   port: Number(process.env.APP_PORT || 3000),
   routes: {
-    "/": {
+    [BASE_PATH]: {
       GET: () => {
         return new Response(
           `
@@ -112,7 +113,7 @@ Bun.serve({
   <h2>API 接口</h2>
 
   <div class="endpoint">
-    <h3>POST /render</h3>
+    <h3>POST ${BASE_PATH}/render</h3>
     <p>将 Markdown 渲染为图片</p>
 
     <h4>请求参数</h4>
@@ -148,7 +149,7 @@ Bun.serve({
     </div>
 
     <h4>请求示例</h4>
-    <pre>POST /render
+    <pre>POST ${BASE_PATH}/render
 Content-Type: application/json
 
 {
@@ -161,7 +162,7 @@ Content-Type: application/json
   </div>
 
   <div class="endpoint">
-    <h3>GET /health</h3>
+    <h3>GET ${BASE_PATH}/health</h3>
     <p>健康检查接口</p>
   </div>
 
@@ -263,7 +264,7 @@ $$
       result.innerHTML = '<div class="loading">正在渲染，请稍候...</div>';
 
       try {
-        const res = await fetch('/render', {
+        const res = await fetch('${BASE_PATH}/render', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -305,11 +306,11 @@ $$
       },
     },
 
-    "/health": {
+    [`${BASE_PATH}/health`]: {
       GET: () => new Response("OK"),
     },
 
-    "/render": {
+    [`${BASE_PATH}/render`]: {
       POST: async (req) => {
         try {
           const {
@@ -397,4 +398,4 @@ $$
   },
 });
 
-console.log("API 服务已启动：http://localhost:3000");
+console.log(`API 服务已启动：http://localhost:3000${BASE_PATH}`);
