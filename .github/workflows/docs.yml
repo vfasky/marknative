@@ -39,19 +39,21 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Rebuild skia-canvas for Linux
-        run: cd node_modules/skia-canvas && npx node-pre-gyp install --fallback-to-build=false
-
-      - name: Generate example images
-        run: bun run docs:examples
+        run: |
+          SKIA=$(node -e "const p=require('path'),fs=require('fs'),m=require('module');const r=m.createRequire(p.join(process.cwd(),'packages/marknative/package.json'));let d=p.dirname(r.resolve('skia-canvas'));while(!fs.existsSync(p.join(d,'package.json')))d=p.dirname(d);console.log(d)")
+          cd "$SKIA" && npx node-pre-gyp install --fallback-to-build=false
 
       - name: Build docs
-        run: bunx vitepress build docs
+        run: |
+          cd packages/marknative-docs
+          bun run examples
+          bunx vitepress build
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: packages/marknative-docs/.vitepress/dist
 
   deploy:
     if: github.ref == 'refs/heads/main'
