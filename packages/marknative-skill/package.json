@@ -1,0 +1,28 @@
+{
+  "name": "marknative-skill",
+  "version": "0.1.0",
+  "description": "Claude Code skill for marknative — teaches agents how to render Markdown to PNG/SVG via CLI",
+  "license": "MIT",
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "claude-code",
+    "claude",
+    "skill",
+    "marknative",
+    "markdown",
+    "render",
+    "png",
+    "svg"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liyown/marknative.git",
+    "directory": "packages/marknative-skill"
+  },
+  "homepage": "https://github.com/liyown/marknative#readme",
+  "bugs": {
+    "url": "https://github.com/liyown/marknative/issues"
+  }
+}
