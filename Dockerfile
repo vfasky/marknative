@@ -39,7 +39,7 @@ COPY package.json .
 COPY bun.lock .
 COPY tsconfig.json .
 # COPY tsconfig.build.json .
-COPY src ./packages/marknative/src
+COPY packages/marknative/src packages/marknative/src
 COPY api-server.ts .
 
 # Install dependencies
