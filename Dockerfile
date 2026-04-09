@@ -38,8 +38,8 @@ FROM base AS release
 COPY package.json .
 COPY bun.lock .
 COPY tsconfig.json .
-COPY tsconfig.build.json .
-COPY src ./src
+# COPY tsconfig.build.json .
+COPY src ./packages/marknative/src
 COPY api-server.ts .
 
 # Install dependencies
