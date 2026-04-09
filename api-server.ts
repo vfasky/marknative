@@ -5,8 +5,8 @@ import {
   mergeTheme,
   renderMarkdown,
   resolveTheme,
-} from "./src/index.js";
-import type { BuiltInThemeName, ThemeOverrides } from "./src/index.js";
+} from "./packages/marknative/src/index.js";
+import type { BuiltInThemeName, ThemeOverrides } from "./packages/marknative/src/index.js";
 
 // 最大单页高度限制（像素）
 const MAX_SINGLE_PAGE_HEIGHT = 16000;
