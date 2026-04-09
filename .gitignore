@@ -41,3 +41,4 @@ tests/smoke/output/
 docs/.vitepress/dist
 docs/public/examples/
 docs/.vitepress/cache
+test.png
